@@ -20,12 +20,16 @@ public class ExchangeRateServiceTests
     // [Trait("Tag", "TestOnly")]
     public async Task FetchExchangeRatesAsync_ShouldReturnExchangeRateDtos()
     {
-        List<string> quotes = [ "JPY", "USD" ];
-        var dtos = await _service.FetchExchangeRatesAsync("TWD", quotes);
+        var baseCurrency = "TWD";
+        var quotes = new[] { "JPY", "USD" };
 
-        Assert.Equal(2, quotes.Count);
-        Assert.Equal("TWD", dtos[0].BaseCurrency);
-        Assert.Contains(dtos[0].QuoteCurrency, quotes);
-        Assert.True(dtos[0].Rate > 0);
+        var currencyExchange = await _service.FetchExchangeRatesAsync( baseCurrency, quotes );
+
+        Assert.Equal( quotes.Length, currencyExchange.Rates.Count );
+        Assert.Equal( baseCurrency, currencyExchange.Base );
+        Assert.Contains( quotes[ 0 ], currencyExchange.Rates.Keys);
+        Assert.Contains( quotes[ 1 ], currencyExchange.Rates.Keys);
+        Assert.True( currencyExchange.Rates[ quotes[ 0 ] ] > 0 );
+        Assert.True( currencyExchange.Rates[ quotes[ 1 ] ] > 0 );
     }
 }

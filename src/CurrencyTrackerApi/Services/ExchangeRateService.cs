@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CurrencyTrackerApi.Infrastructure.Settings;
 using CurrencyTrackerApi.Models;
 using CurrencyTrackerApi.Repositories;
 
@@ -7,23 +8,17 @@ namespace CurrencyTrackerApi.Services;
 public class ExchangeRateService
 {
     private readonly JsonRepository _repository;
-    private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _baseUrl = "https://api.frankfurter.dev/v2/rates";
     private readonly string _filePath = @"data\testdata.txt";
 
     public ExchangeRateService( JsonRepository repository )
     {
         _repository = repository;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        };
     }
 
-    public async Task<List<ExchangeRateDto>> FetchExchangeRatesAsync( string baseCurrency, IEnumerable<string>? quoteCurrencies )
+    public async Task<CurrencyExchange> FetchExchangeRatesAsync( string baseCurrency, IEnumerable<string>? quoteCurrencies )
     {
-        List<ExchangeRateDto> exchangeRateDtos = [];
+        var currencyExchange = new CurrencyExchange();
         try
         {
             var url = $"{_baseUrl}?base={baseCurrency}";
@@ -38,9 +33,16 @@ public class ExchangeRateService
             var filePath = await _repository.SaveJsonAsync( jsonString, _filePath );
             var json = await _repository.ReadJsonAsync( _filePath );
 
-            exchangeRateDtos = JsonSerializer.Deserialize<List<ExchangeRateDto>>( json, _jsonOptions) ?? [];
+            var exchangeRateDtos = JsonSerializer.Deserialize<List<ExchangeRateDto>>( json, JsonOptions.Default ) ?? [];
+            if ( exchangeRateDtos.Count > 0 )
+            {
+                currencyExchange.Date = exchangeRateDtos[ 0 ].Date;
+                currencyExchange.Base = exchangeRateDtos[ 0 ].BaseCurrency;
+            }
+
             foreach ( var item in exchangeRateDtos )
             {
+                currencyExchange.Rates[ item.QuoteCurrency ] = item.Rate;
                 Console.WriteLine( $"{item.Date} {item.BaseCurrency} -> {item.QuoteCurrency}: {item.Rate}" );
             }
         }
@@ -48,6 +50,6 @@ public class ExchangeRateService
         {
             Console.WriteLine( $"Error fetching exchange rates:\n{ex.Message}" );
         }
-        return exchangeRateDtos;
+        return currencyExchange;
     }
 }

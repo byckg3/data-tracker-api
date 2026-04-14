@@ -20,8 +20,8 @@ public class ExchangeRateController : ControllerBase
                                           [FromQuery] string? quotes )
     {
         string[] quoteArray = quotes?.Split( ',' ) ?? [];
-        var exchangeRates = await _exchangeRateService.FetchExchangeRatesAsync( baseCurrency, quoteArray );
+        var currencyQuotation = await _exchangeRateService.FetchExchangeRatesAsync( baseCurrency, quoteArray );
 
-        return Ok( exchangeRates );
+        return Ok( currencyQuotation );
     }
 }

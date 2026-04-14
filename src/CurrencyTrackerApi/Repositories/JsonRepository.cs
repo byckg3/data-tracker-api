@@ -1,22 +1,17 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using CurrencyTrackerApi.Infrastructure.Settings;
 
 namespace CurrencyTrackerApi.Repositories;
 
 public class JsonRepository
 {
     private readonly HttpClient _httpClient;
-    private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _baseDir;
 
     public JsonRepository( HttpClient httpClient )
     {
         _httpClient = httpClient;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        };
         _baseDir = AppDomain.CurrentDomain.BaseDirectory;
     }
 
@@ -57,7 +52,7 @@ public class JsonRepository
             var jsonNode = JsonNode.Parse( jsonString ) ??
                 throw new InvalidOperationException( "Failed to parse JSON string." );
 
-            string prettyJson = jsonNode.ToJsonString( _jsonOptions );
+            string prettyJson = jsonNode.ToJsonString( JsonOptions.Default );
             await File.WriteAllTextAsync( fullPath, prettyJson );
 
             return fullPath;
