@@ -21,20 +21,25 @@ public class ExchangeRateService
         };
     }
 
-    public async Task<List<ExchangeRateDto>> FetchExchangeRatesAsync( string baseCurrency, IEnumerable<string> quoteCurrencies )
+    public async Task<List<ExchangeRateDto>> FetchExchangeRatesAsync( string baseCurrency, IEnumerable<string>? quoteCurrencies )
     {
         List<ExchangeRateDto> exchangeRateDtos = [];
-        // string fileName = "testdata.txt";
         try
         {
-            var url = $"{_baseUrl}?base={baseCurrency}&quotes={string.Join( ",", quoteCurrencies )}";
+            var url = $"{_baseUrl}?base={baseCurrency}";
+            if ( quoteCurrencies != null && quoteCurrencies.Any() )
+            {
+                url += $"&quotes={string.Join( ",", quoteCurrencies )}";
+            }
+
             var jsonString = await _repository.GetJsonAsync( url );
+            Console.WriteLine( $"Fetched exchange rates JSON:\n{jsonString}" );
 
             var filePath = await _repository.SaveJsonAsync( jsonString, _filePath );
             var json = await _repository.ReadJsonAsync( _filePath );
 
-            exchangeRateDtos = JsonSerializer.Deserialize<List<ExchangeRateDto>>( json, _jsonOptions ) ?? [];
-            foreach (var item in exchangeRateDtos)
+            exchangeRateDtos = JsonSerializer.Deserialize<List<ExchangeRateDto>>( json, _jsonOptions) ?? [];
+            foreach ( var item in exchangeRateDtos )
             {
                 Console.WriteLine( $"{item.Date} {item.BaseCurrency} -> {item.QuoteCurrency}: {item.Rate}" );
             }

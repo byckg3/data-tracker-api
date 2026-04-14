@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using CurrencyTrackerApi.Models;
 
 namespace CurrencyTrackerApi.Repositories;
 
@@ -50,7 +49,7 @@ public class JsonRepository
         {
             string fullPath = GetFullPath( filePath );
             string? folderPath = Path.GetDirectoryName( fullPath );
-            if (!string.IsNullOrEmpty( folderPath ))
+            if ( !string.IsNullOrEmpty( folderPath ) )
             {
                 Directory.CreateDirectory( folderPath );
             }
@@ -63,7 +62,7 @@ public class JsonRepository
 
             return fullPath;
         }
-        catch (Exception ex)
+        catch ( Exception ex )
         {
             Console.WriteLine( $"Error saving JSON to file {filePath}:\n{ex.Message}" );
             throw;
