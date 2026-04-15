@@ -1,9 +1,11 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
+using CurrencyTrackerApi.Infrastructure.Settings;
 using CurrencyTrackerApi.Repositories;
 using CurrencyTrackerApi.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder( args );
+FileSettings.BaseDirectory = builder.Environment.ContentRootPath;
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -23,6 +25,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();

@@ -10,10 +10,10 @@ public record ExchangeRateDto
 {
     public required DateOnly Date { get; init; }
 
-    [JsonPropertyName("base")]
+    [JsonPropertyName( "base" )]
     public required string BaseCurrency { get; init; }
 
-    [JsonPropertyName("quote")]
+    [JsonPropertyName( "quote" )]
     public required string QuoteCurrency { get; init; }
 
     public required decimal Rate { get; init; }

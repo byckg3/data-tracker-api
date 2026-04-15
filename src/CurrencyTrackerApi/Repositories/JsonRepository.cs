@@ -4,16 +4,10 @@ using CurrencyTrackerApi.Infrastructure.Settings;
 
 namespace CurrencyTrackerApi.Repositories;
 
-public class JsonRepository
+public class JsonRepository( HttpClient httpClient )
 {
-    private readonly HttpClient _httpClient;
-    private readonly string _baseDir;
-
-    public JsonRepository( HttpClient httpClient )
-    {
-        _httpClient = httpClient;
-        _baseDir = AppDomain.CurrentDomain.BaseDirectory;
-    }
+    private readonly HttpClient _httpClient = httpClient;
+    public string BaseDir { get; set; } = FileSettings.BaseDirectory;
 
     public async Task<string> GetJsonAsync( string url )
     {
@@ -91,7 +85,7 @@ public class JsonRepository
     private string GetFullPath( string path )
     {
         string relativePath = path.TrimStart( '\\', '/' );
-        string fullPath = Path.GetFullPath( _baseDir + relativePath );
+        string fullPath = Path.GetFullPath( Path.Combine( BaseDir, relativePath ) );
 
         return fullPath;
     }
