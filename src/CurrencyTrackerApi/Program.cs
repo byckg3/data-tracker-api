@@ -6,6 +6,17 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder( args );
 FileSettings.BaseDirectory = builder.Environment.ContentRootPath;
+builder.Services.AddCors( options =>
+{
+    options.AddDefaultPolicy( policy =>
+    {
+        string[] allowedOrigins = [ "http://localhost:4200", "https://localhost", "https://frontend.com" ];
+        policy.WithOrigins( allowedOrigins )
+              .AllowCredentials()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    } );
+} );
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -27,7 +38,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
-
+app.UseCors();
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
