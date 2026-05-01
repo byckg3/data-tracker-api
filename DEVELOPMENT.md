@@ -7,6 +7,9 @@
 - dotnet dev-certs https --trust
 - dotnet test --filter "Tag=TestOnly"
 
+### urls
+- http://localhost:5253/scalar
+
 
 ### refs
 - [A tour of the C# language](https://learn.microsoft.com/zh-tw/dotnet/csharp/tour-of-csharp/)
