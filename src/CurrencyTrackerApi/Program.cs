@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using CurrencyTrackerApi.Hubs;
 using CurrencyTrackerApi.Infrastructure.Settings;
 using CurrencyTrackerApi.Repositories;
 using CurrencyTrackerApi.Services;
@@ -30,6 +31,8 @@ builder.Services.AddOpenApi()
                 .AddScoped<ExchangeRateService>();
 builder.Services.AddHttpClient<JsonRepository>();
 
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -39,10 +42,13 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 app.UseCors();
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<ChatHub>( "/chatHub" );
 
 app.Run();
