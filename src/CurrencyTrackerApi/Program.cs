@@ -1,54 +1,115 @@
 using System.Text.Json.Serialization;
-using CurrencyTrackerApi.Hubs;
+using Scalar.AspNetCore;
+using Serilog;
+
+using CurrencyTrackerApi.Infrastructure.Channels;
 using CurrencyTrackerApi.Infrastructure.Settings;
+using CurrencyTrackerApi.Models;
 using CurrencyTrackerApi.Repositories;
 using CurrencyTrackerApi.Services;
-using Scalar.AspNetCore;
+using Serilog.Filters;
 
-var builder = WebApplication.CreateBuilder( args );
-FileSettings.BaseDirectory = builder.Environment.ContentRootPath;
-builder.Services.AddCors( options =>
+
+try
 {
-    options.AddDefaultPolicy( policy =>
+    var builder = WebApplication.CreateBuilder( args );
+    FileSettings.BaseDirectory = builder.Environment.ContentRootPath;
+
+    var logBaseDir = Path.Combine( FileSettings.BaseDirectory, "logs" );
+    Log.Logger = new LoggerConfiguration()
+        .MinimumLevel.Information()
+        .Enrich.FromLogContext()
+        .WriteTo.Logger( lc =>
+            lc.Filter.ByExcluding( Matching.WithProperty( "ConnId" ) )
+              .WriteTo.Console( outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}" )
+        )
+        .WriteTo.Logger( lc =>
+            lc.Filter.ByIncludingOnly( Matching.WithProperty( "ConnId" ) )
+              .WriteTo.Async( asyncWrite =>
+                    asyncWrite.Map(
+                        keyPropertyName: "ConnId",
+                        defaultKey: "Global",
+                        configure: ( connId, mapWrite ) => mapWrite.File(
+                            path: Path.Combine( logBaseDir, connId, "status-.log" ),
+                            rollingInterval: RollingInterval.Hour,
+                            buffered: true,
+                            flushToDiskInterval: TimeSpan.FromSeconds( 5 ),
+                            retainedFileCountLimit: 24,             // 只保留最近 24 個檔案（一天）
+                            fileSizeLimitBytes: 100 * 1024 * 1024,  // 單個檔案上限 100MB
+                            outputTemplate: "{Message:lj}{NewLine}"
+                        )
+                    ),
+                    bufferSize: 10000
+            )
+        )
+        .CreateLogger();
+
+    builder.Host.UseSerilog();
+
+    builder.Services.AddCors( options =>
     {
-        string[] allowedOrigins = [ "http://localhost:4200", "https://localhost", "https://frontend.com" ];
-        policy.WithOrigins( allowedOrigins )
-              .AllowCredentials()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        options.AddDefaultPolicy( policy =>
+        {
+            string[] allowedOrigins = [ "http://localhost:4200", "https://localhost", "https://frontend.com" ];
+            policy.WithOrigins( allowedOrigins )
+                .AllowCredentials()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        } );
     } );
-} );
 
-// Add services to the container.
-builder.Services.AddControllers()
-                .AddJsonOptions( options =>
-                    {
-                        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                    }
-                );
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi()
-                .AddScoped<ExchangeRateService>();
-builder.Services.AddHttpClient<JsonRepository>();
+    // Add services to the container.
+    builder.Services.AddControllers()
+                    .AddJsonOptions( options =>
+                        {
+                            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                        }
+                    );
+    // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+    builder.Services.AddOpenApi()
+                    .AddScoped<ExchangeRateService>()
+                    .AddSingleton<WebSocketService>()
+                    .AddSingleton<DataChannel<ClientMessage>>()
+                    .AddHostedService<FileWriteWorker>();
+    builder.Services.AddHttpClient<JsonRepository>();
 
-builder.Services.AddSignalR();
+    // builder.Services.AddSignalR();
 
-var app = builder.Build();
+    var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+    }
+    app.UseCors();
+
+    app.UseHttpsRedirection();
+
+    app.UseAuthorization();
+
+    var webSocketOptions = new WebSocketOptions
+    {
+        KeepAliveInterval = TimeSpan.FromMinutes( 2 ),
+    };
+    app.UseWebSockets( webSocketOptions );
+
+    app.MapControllers();
+
+
+    // app.MapHub<ChatHub>( "/chatHub" );
+
+    app.Run();
 }
-app.UseCors();
+catch ( Exception ex )
+{
+    Log.Fatal( ex, "Application terminated unexpectedly" );
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
-app.UseHttpsRedirection();
 
-app.UseAuthorization();
 
-app.MapControllers();
-
-app.MapHub<ChatHub>( "/chatHub" );
-
-app.Run();
