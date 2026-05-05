@@ -21,9 +21,7 @@ public class WebSocketController : ControllerBase
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             string connectionId = Guid.NewGuid().ToString();
 
-            _webSocketService.AddSocket( connectionId, webSocket );
-            await _webSocketService.ListenAsync( connectionId, webSocket, HttpContext.RequestAborted );
-            await _webSocketService.RemoveSocket( connectionId );
+            await _webSocketService.ServeAsync( connectionId, webSocket, HttpContext.RequestAborted );
         }
         else
         {
