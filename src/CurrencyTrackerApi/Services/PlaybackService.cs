@@ -7,7 +7,8 @@ namespace CurrencyTrackerApi.Services;
 
 public class PlaybackService
 {
-    public string BaseDir { get; set; } = FileSettings.BaseDirectory;
+    public static string BaseDir { get; set; } = FileSettings.BaseDirectory;
+
     public async IAsyncEnumerable<MovementLog> StreamLogAsync(
         string filePath, [EnumeratorCancellation] CancellationToken ct = default )
     {

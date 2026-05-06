@@ -68,6 +68,7 @@ try
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi()
                     .AddScoped<ExchangeRateService>()
+                    .AddScoped<PlaybackService>()
                     .AddSingleton<WebSocketService>()
                     .AddSingleton<DataChannel<ClientMessage>>()
                     .AddHostedService<FileWriteWorker>();
