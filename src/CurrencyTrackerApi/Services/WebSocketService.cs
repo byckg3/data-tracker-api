@@ -11,10 +11,12 @@ public class WebSocketService
     private static readonly ConcurrentDictionary<string, WebSocket> _sockets = [];
     private static readonly int BufferSize = 1024 * 4;
     private readonly DataChannel<ClientMessage> _channel;
+    private readonly ILogger<WebSocketService> _logger;
 
-    public WebSocketService( DataChannel<ClientMessage> channel )
+    public WebSocketService( DataChannel<ClientMessage> channel, ILogger<WebSocketService> logger )
     {
         _channel = channel;
+        _logger = logger;
     }
 
     public async Task ServeAsync( string connectionId, WebSocket webSocket, CancellationToken ct = default )
@@ -26,7 +28,7 @@ public class WebSocketService
         }
         catch ( Exception ex )
         {
-            Console.WriteLine( $"Error in WebSocketService.ServeAsync:\n{ex.Message}" );
+            _logger.LogError( ex, "Error in WebSocketService.ServeAsync" );
         }
         finally
         {
@@ -47,7 +49,7 @@ public class WebSocketService
         }
         else
         {
-            Console.WriteLine( $"Failed to send message. WebSocket with ID: {connectionId} is not open." );
+            _logger.LogWarning( "Failed to send message. WebSocket with ID: {ConnectionId} is not open.", connectionId );
         }
     }
 
@@ -74,7 +76,7 @@ public class WebSocketService
             }
             catch ( Exception ex )
             {
-                Console.WriteLine( $"Error in WebSocketService.ListenAsync for connection ID: {connectionId}\n{ex.Message}" );
+                _logger.LogError( ex, "Error in WebSocketService.ListenAsync for connection ID: {ConnectionId}", connectionId );
             }
             finally
             {
@@ -85,39 +87,39 @@ public class WebSocketService
                 }
             }
         }
-        Console.WriteLine( "WebSocket connection closed." );
+        _logger.LogInformation( "WebSocket connection closed." );
     }
 
-    private static bool AddSocket( string id, WebSocket socket )
+    private bool AddSocket( string id, WebSocket socket )
     {
         bool added = _sockets.TryAdd( id, socket );
         if ( added )
         {
             // log the successful addition of the socket
-            Console.WriteLine( $"WebSocket added with ID: {id}" );
+            _logger.LogInformation( "WebSocket added with ID: {ConnectionId}", id );
         }
         else
         {
             // Handle the case where the socket could not be added
-            Console.WriteLine( $"Failed to add WebSocket with ID: {id}" );
+            _logger.LogWarning( "Failed to add WebSocket with ID: {ConnectionId}", id );
         }
         return added;
     }
 
-    private static async Task RemoveSocketAsync( string id )
+    private async Task RemoveSocketAsync( string id )
     {
         if ( _sockets.TryRemove( id, out var _ ) )
         {
-            Console.WriteLine( $"WebSocket removed with ID: {id}" );
+            _logger.LogInformation( "WebSocket removed with ID: {ConnectionId}", id );
         }
         else
         {
             // Handle the case where the socket could not be removed
-            Console.WriteLine( $"Failed to remove WebSocket with ID: {id}" );
+            _logger.LogWarning( "Failed to remove WebSocket with ID: {ConnectionId}", id );
         }
     }
 
-    private static async Task CloseSocketAsync( WebSocket socket )
+    private async Task CloseSocketAsync( WebSocket socket )
     {
         if ( socket.State is WebSocketState.Open or WebSocketState.CloseReceived )
         {
@@ -131,7 +133,7 @@ public class WebSocketService
             }
             catch ( Exception ex )
             {
-                Console.WriteLine( $"Error closing WebSocket: {ex.Message}" );
+                _logger.LogError( ex, "Error closing WebSocket" );
             }
         }
     }

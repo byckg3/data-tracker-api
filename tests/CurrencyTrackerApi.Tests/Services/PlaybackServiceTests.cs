@@ -1,6 +1,8 @@
 using CurrencyTrackerApi.Infrastructure.Settings;
 using CurrencyTrackerApi.Models;
 using CurrencyTrackerApi.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CurrencyTrackerApi.Tests.Services;
 
@@ -10,12 +12,16 @@ public class PlaybackServiceTests
 
     public PlaybackServiceTests()
     {
+        PlaybackService.BaseDir = FileSettings.ProjectDirectory;
         // Console.WriteLine( FileSettings.ProjectDirectory );
-        _playbackService = new PlaybackService
-        {
-            BaseDir = FileSettings.ProjectDirectory
-        };
 
+        // var logger = NullLogger<PlaybackService>.Instance;
+        using var loggerFactory = LoggerFactory.Create( builder =>
+        {
+            builder.AddConsole();
+        } );
+        var logger = loggerFactory.CreateLogger<PlaybackService>();
+        _playbackService = new PlaybackService( logger );
     }
 
     [Fact]

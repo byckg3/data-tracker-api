@@ -11,10 +11,12 @@ namespace CurrencyTrackerApi.Controllers;
 public class PlaybackController : ControllerBase
 {
     private readonly PlaybackService _playbackService;
+    private readonly ILogger<PlaybackController> _logger;
 
-    public PlaybackController( PlaybackService playbackService )
+    public PlaybackController( PlaybackService playbackService, ILogger<PlaybackController> logger )
     {
         _playbackService = playbackService;
+        _logger = logger;
     }
 
     [HttpGet( "{connectionId}/{date}" )]
@@ -44,6 +46,7 @@ public class PlaybackController : ControllerBase
                     break;
                 }
                 string jsonString = JsonSerializer.Serialize( record );
+                _logger.LogInformation( "{Record}", jsonString );
 
                 await Response.WriteAsync( $"data: {jsonString}\n\n", ct );
                 await Response.Body.FlushAsync( ct );
@@ -52,11 +55,11 @@ public class PlaybackController : ControllerBase
         }
         catch ( OperationCanceledException )
         {
-            Console.WriteLine( "Playback cancelled by client." );
+            _logger.LogInformation( "Playback cancelled by client." );
         }
         catch ( Exception ex )
         {
-            Console.WriteLine( $"Error in PlaybackController.Play:\n{ex.Message}" );
+            _logger.LogError( ex, "Error in PlaybackController.Play" );
             try
             {
                 await Response.WriteAsync( $"data: Error: {ex.Message}\n\n", ct );
@@ -64,7 +67,7 @@ public class PlaybackController : ControllerBase
             }
             catch ( Exception innerEx )
             {
-                Console.WriteLine( $"Error sending error message to client:\n{innerEx.Message}" );
+                _logger.LogError( innerEx, "Error sending error message to client" );
             }
         }
     }

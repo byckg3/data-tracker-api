@@ -7,10 +7,12 @@ namespace CurrencyTrackerApi.Controllers;
 public class WebSocketController : ControllerBase
 {
     private readonly WebSocketService _webSocketService;
+    private readonly ILogger<WebSocketController> _logger;
 
-    public WebSocketController( WebSocketService webSocketService )
+    public WebSocketController( WebSocketService webSocketService, ILogger<WebSocketController> logger )
     {
         _webSocketService = webSocketService;
+        _logger = logger;
     }
 
     [Route("/ws")]
@@ -20,6 +22,7 @@ public class WebSocketController : ControllerBase
         {
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             string connectionId = Guid.NewGuid().ToString();
+            _logger.LogInformation( "New WebSocket connection established: {ConnectionId}", connectionId );
 
             await _webSocketService.ServeAsync( connectionId, webSocket, HttpContext.RequestAborted );
         }

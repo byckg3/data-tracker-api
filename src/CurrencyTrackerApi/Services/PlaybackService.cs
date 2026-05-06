@@ -8,6 +8,12 @@ namespace CurrencyTrackerApi.Services;
 public class PlaybackService
 {
     public static string BaseDir { get; set; } = FileSettings.BaseDirectory;
+    private readonly ILogger<PlaybackService> _logger;
+
+    public PlaybackService( ILogger<PlaybackService> logger )
+    {
+        _logger = logger;
+    }
 
     public async IAsyncEnumerable<MovementLog> StreamLogAsync(
         string filePath, [EnumeratorCancellation] CancellationToken ct = default )
@@ -23,7 +29,6 @@ public class PlaybackService
                 continue;
 
             var log = JsonSerializer.Deserialize<MovementLog>( trimmedLine );
-            // Console.WriteLine( $"Position: {string.Join( ", ", log.Position )}, Rotation: {string.Join( ", ", log.Rotation )}" );
 
             yield return log;
         }
