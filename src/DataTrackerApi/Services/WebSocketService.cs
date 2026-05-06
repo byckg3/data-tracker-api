@@ -32,7 +32,7 @@ public class WebSocketService
         }
         finally
         {
-            await RemoveSocketAsync( connectionId );
+            RemoveSocket( connectionId );
             await CloseSocketAsync( webSocket );
         }
     }
@@ -109,9 +109,10 @@ public class WebSocketService
         return added;
     }
 
-    private async Task RemoveSocketAsync( string id )
+    private bool RemoveSocket( string id )
     {
-        if ( _sockets.TryRemove( id, out var _ ) )
+        bool removed = _sockets.TryRemove( id, out var _ );
+        if ( removed )
         {
             _logger.LogInformation( "WebSocket removed with ID: {ConnectionId}", id );
         }
@@ -120,6 +121,7 @@ public class WebSocketService
             // Handle the case where the socket could not be removed
             _logger.LogWarning( "Failed to remove WebSocket with ID: {ConnectionId}", id );
         }
+        return removed;
     }
 
     private async Task CloseSocketAsync( WebSocket socket )

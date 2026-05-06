@@ -7,7 +7,7 @@ namespace DataTrackerApi.Services;
 
 public class PlaybackService
 {
-    public static string BaseDir { get; set; } = FileSettings.BaseDirectory;
+    public string BaseDir { get; set; } = Path.Combine( FileSettings.BaseDirectory, "logs" );
     private readonly ILogger<PlaybackService> _logger;
 
     public PlaybackService( ILogger<PlaybackService> logger )
@@ -15,10 +15,41 @@ public class PlaybackService
         _logger = logger;
     }
 
-    public async IAsyncEnumerable<MovementLog> StreamLogAsync(
+    public ( bool IsSuccess, string? Error, IAsyncEnumerable<MovementLog>? Stream )
+        PrepareStream( string connectionId, string date )
+    {
+        if ( !Guid.TryParse( connectionId, out _ ) )
+            return ( false, "Invalid connection ID", null );
+
+        if ( !DateTime.TryParseExact(
+                date, "yyyyMMddHH",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out _ ) )
+            return ( false, "Invalid date format", null );
+
+        var relativePath = Path.Combine( connectionId, $"status-{date}.log" );
+        var fullPath = Path.GetFullPath( Path.Combine( BaseDir, relativePath ) );
+
+        if ( !fullPath.StartsWith(
+                BaseDir + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase ) )
+            return ( false, "Invalid file path", null );
+
+        if ( !File.Exists( fullPath ) )
+        {
+            return ( false, "File not found", null );
+        }
+        return ( true, null, StreamLogAsync( relativePath ) );
+    }
+
+    private async IAsyncEnumerable<MovementLog> StreamLogAsync(
         string filePath, [EnumeratorCancellation] CancellationToken ct = default )
     {
         var fullPath = Path.Combine( BaseDir, filePath );
+        if ( !File.Exists( fullPath ) )
+        {
+            throw new FileNotFoundException( "File not found", fullPath );
+        }
 
         using var fs = new FileStream( fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
         using var reader = new StreamReader( fs );

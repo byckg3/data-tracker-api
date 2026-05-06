@@ -20,23 +20,16 @@ public class PlaybackController : ControllerBase
     }
 
     [HttpGet( "{connectionId}/{date}" )]
-    public IActionResult GetRecords( string connectionId, string date, CancellationToken ct )
+    public async Task<IActionResult> GetRecords( string connectionId, string date )
     {
         try
         {
-            var targetFilePath = Path.Combine( "logs", connectionId, $"status-{date}.log" );
-            if ( !System.IO.File.Exists( targetFilePath ) )
+            var ( isSuccess, error, stream ) = _playbackService.PrepareStream( connectionId, date );
+            if ( !isSuccess )
             {
-                throw new FileNotFoundException( "File not found", targetFilePath );
+                return NotFound( error );
             }
-            var playbackStream = _playbackService.StreamLogAsync( targetFilePath, ct );
-
-            return Ok( playbackStream );
-        }
-        catch ( FileNotFoundException e )
-        {
-            _logger.LogError( e, "File not found: {FilePath}", e.FileName );
-            return NotFound( "Data not found" );
+            return Ok( stream );
         }
         catch ( Exception ex )
         {
@@ -53,10 +46,15 @@ public class PlaybackController : ControllerBase
         Response.Headers.Connection = "keep-alive";
         try
         {
-            var targetFilePath = Path.Combine( "logs", connectionId, $"status-{date}.log" );
-            var playbackStream = _playbackService.StreamLogAsync( targetFilePath, ct );
+            var ( isSuccess, error, stream ) = _playbackService.PrepareStream( connectionId, date );
+            if ( !isSuccess || stream is null )
+            {
+                await Response.WriteAsync( $"data: Error: {error}\n\n", ct );
+                await Response.Body.FlushAsync( ct );
+                return;
+            }
 
-            await foreach ( var record in playbackStream.WithCancellation( ct ) )
+            await foreach ( var record in stream.WithCancellation( ct ) )
             {
                 if ( ct.IsCancellationRequested )
                 {
