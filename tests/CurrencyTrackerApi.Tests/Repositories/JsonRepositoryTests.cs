@@ -11,7 +11,7 @@ public class JsonRepositoryTests
     public JsonRepositoryTests()
     {
         _httpClient = new HttpClient();
-        _repository = new JsonRepository(_httpClient);
+        _repository = new JsonRepository( _httpClient );
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class JsonRepositoryTests
     }
 
     [Fact]
-    [Trait("Tag", "TestOnly")]
+    // [Trait("Tag", "TestOnly")]
     public async Task SaveJsonAsync_ShouldSaveJsonToFile()
     {
         string jsonString = "[{\"date\":\"2026-04-13\",\"base\":\"TWD\",\"quote\":\"JPY\",\"rate\":5.0267}]";
