@@ -5,7 +5,6 @@ using Serilog;
 using DataTrackerApi.Infrastructure.Channels;
 using DataTrackerApi.Infrastructure.Settings;
 using DataTrackerApi.Models;
-using DataTrackerApi.Repositories;
 using DataTrackerApi.Services;
 using Serilog.Filters;
 
@@ -67,12 +66,10 @@ try
                     );
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi()
-                    .AddScoped<ExchangeRateService>()
                     .AddScoped<PlaybackService>()
                     .AddSingleton<WebSocketService>()
                     .AddSingleton<DataChannel<ClientMessage>>()
                     .AddHostedService<FileWriteWorker>();
-    builder.Services.AddHttpClient<JsonRepository>();
 
     // builder.Services.AddSignalR();
 

@@ -23,13 +23,11 @@ Core capabilities:
 src/DataTrackerApi/
   Controllers/      # API entry points (Playback / WebSocket)
   Services/         # Business logic for playback and websocket workflows
-  Repositories/     # Data access and file persistence support
   Infrastructure/   # Shared settings and channels
   Models/           # DTOs and message models
 
 tests/DataTrackerApi.Tests/
   Services/
-  Repositories/
 ```
 
 ## Quick Start
@@ -52,7 +50,7 @@ dotnet build
 
 ### 3) Run API
 
-From the repository root:
+From the project root:
 
 ```bash
 dotnet run --project src/DataTrackerApi/DataTrackerApi.csproj
