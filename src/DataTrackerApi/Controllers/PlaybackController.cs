@@ -1,8 +1,8 @@
-using System.Runtime.CompilerServices;
 using System.Text.Json;
-using DataTrackerApi.Models;
-using DataTrackerApi.Services;
 using Microsoft.AspNetCore.Mvc;
+
+using DataTrackerApi.Services;
+using Settings = DataTrackerApi.Infrastructure.Settings;
 
 namespace DataTrackerApi.Controllers;
 
@@ -60,7 +60,7 @@ public class PlaybackController : ControllerBase
                 {
                     break;
                 }
-                string jsonString = JsonSerializer.Serialize( record );
+                string jsonString = JsonSerializer.Serialize( record, Settings.JsonOptions.Default );
                 _logger.LogInformation( "{Record}", jsonString );
 
                 await Response.WriteAsync( $"data: {jsonString}\n\n", ct );

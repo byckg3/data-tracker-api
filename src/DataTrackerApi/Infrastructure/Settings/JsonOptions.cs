@@ -9,11 +9,8 @@ public static class JsonOptions
     {
         PropertyNameCaseInsensitive = true,
         WriteIndented = true,
-        // Use camelCase naming convention for JSON output
+        // Use camelCase naming convention for JSON string output
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 }
-
-// 使用方式
-// var json = JsonSerializer.Serialize(myObj, JsonOptions.Default);

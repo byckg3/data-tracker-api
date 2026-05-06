@@ -61,7 +61,17 @@ public class PlaybackService
             if ( trimmedLine.IsEmpty )
                 continue;
 
-            var currentLog = JsonSerializer.Deserialize<MovementLog>( trimmedLine );
+            MovementLog currentLog;
+            try
+            {
+                currentLog = JsonSerializer.Deserialize<MovementLog>( trimmedLine );
+            }
+            catch ( JsonException ex )
+            {
+                _logger.LogWarning( ex, "Skipping malformed log line: {Line}", trimmedLine.ToString() );
+                continue;
+            }
+
             if ( lastLog is not null && currentLog.Equals( lastLog ) )
                 continue;
 

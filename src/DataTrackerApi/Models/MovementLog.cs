@@ -1,8 +1,9 @@
 namespace DataTrackerApi.Models;
 public readonly record struct MovementLog : IEquatable<MovementLog>
 {
-    public float[] Position { get; init; }
-    public float[] Rotation { get; init; }
+    public MovementLog() { }
+    public float[] Position { get; init; } = [];
+    public float[] Rotation { get; init; } = [];
 
     public bool Equals( MovementLog other )
     {
@@ -16,6 +17,11 @@ public readonly record struct MovementLog : IEquatable<MovementLog>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine( Position, Rotation );
+        var hash = new HashCode();
+        foreach ( var v in Position ) hash.Add( v );
+
+        foreach ( var v in Rotation ) hash.Add( v );
+
+        return hash.ToHashCode();
     }
 }
