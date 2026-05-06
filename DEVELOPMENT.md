@@ -6,6 +6,7 @@
 - dotnet new webapi -controllers
 - dotnet dev-certs https --trust
 - dotnet test --filter "Tag=TestOnly"
+- dotnet publish src\<PATH>\<PROJECT_NAME>.csproj -c Release -o ./publish
 
 ### urls
 - http://localhost:5253/scalar

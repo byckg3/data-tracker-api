@@ -4,6 +4,7 @@ using CurrencyTrackerApi.Services;
 
 namespace CurrencyTrackerApi.Controllers;
 
+//
 public class WebSocketController : ControllerBase
 {
     private readonly WebSocketService _webSocketService;
@@ -15,7 +16,7 @@ public class WebSocketController : ControllerBase
         _logger = logger;
     }
 
-    [Route("/ws")]
+    [Route("/")]
     public async Task Get()
     {
         if ( HttpContext.WebSockets.IsWebSocketRequest )

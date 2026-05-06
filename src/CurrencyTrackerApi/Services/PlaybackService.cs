@@ -22,15 +22,19 @@ public class PlaybackService
         using var fs = new FileStream( fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
         using var reader = new StreamReader( fs );
 
+        MovementLog? lastLog = null;
         while ( await reader.ReadLineAsync( ct ) is string line )
         {
             var trimmedLine = line.AsSpan().Trim();
             if ( trimmedLine.IsEmpty )
                 continue;
 
-            var log = JsonSerializer.Deserialize<MovementLog>( trimmedLine );
+            var currentLog = JsonSerializer.Deserialize<MovementLog>( trimmedLine );
+            if ( lastLog is not null && currentLog.Equals( lastLog ) )
+                continue;
 
-            yield return log;
+            yield return currentLog;
+            lastLog = currentLog;
         }
     }
 }

@@ -64,12 +64,14 @@ public class WebSocketService
                 var result = await webSocket.ReceiveAsync( owner.Memory, ct );
                 if ( result.MessageType == WebSocketMessageType.Close )
                 {
-                    Console.WriteLine( "Received close message from client." );
+                    _logger.LogInformation( "Received close message from client {ConnectionId}.", connectionId );
                     await CloseSocketAsync( webSocket );
+
                     break;
                 }
                 var data = owner.Memory[ ..result.Count ];
                 await SendMessageAsync( connectionId, data, ct );
+                _logger.LogInformation( "{Message}", Encoding.UTF8.GetString( data.Span ) );
 
                 var clientMessage = new ClientMessage( connectionId, data, owner );
                 await _channel.Writer.WriteAsync( clientMessage, ct );
@@ -87,7 +89,7 @@ public class WebSocketService
                 }
             }
         }
-        _logger.LogInformation( "WebSocket connection closed." );
+        _logger.LogInformation( "WebSocket connection {ConnectionId} closed.", connectionId );
     }
 
     private bool AddSocket( string id, WebSocket socket )
