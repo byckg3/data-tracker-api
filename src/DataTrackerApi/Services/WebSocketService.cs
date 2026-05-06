@@ -75,6 +75,7 @@ public class WebSocketService
 
                 var clientMessage = new ClientMessage( connectionId, data, owner );
                 await _channel.Writer.WriteAsync( clientMessage, ct );
+                ownershipTransferred = true;
             }
             catch ( Exception ex )
             {
