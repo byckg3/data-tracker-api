@@ -26,6 +26,7 @@ src/DataTrackerApi/
   Repositories/     # Data access and file persistence support
   Infrastructure/   # Shared settings and channels
   Models/           # DTOs and message models
+
 tests/DataTrackerApi.Tests/
   Services/
   Repositories/
@@ -54,7 +55,7 @@ dotnet build
 From the repository root:
 
 ```bash
-dotnet run --project src/DataTrackerApi/DataTrackerApi.csproj --launch-profile https
+dotnet run --project src/DataTrackerApi/DataTrackerApi.csproj
 ```
 
 Default URLs:
