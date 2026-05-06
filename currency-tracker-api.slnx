@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/CurrencyTrackerApi/CurrencyTrackerApi.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/CurrencyTrackerApi.Tests/CurrencyTrackerApi.Tests.csproj" />
-  </Folder>
-</Solution>
