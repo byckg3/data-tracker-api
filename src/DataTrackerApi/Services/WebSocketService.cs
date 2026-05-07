@@ -28,7 +28,7 @@ public class WebSocketService
         }
         catch ( Exception ex )
         {
-            _logger.LogError( ex, "Error in WebSocketService.ServeAsync" );
+            _logger.LogError( ex, "Unexpected error in WebSocketService.ServeAsync for {ConnectionId}", connectionId );
         }
         finally
         {
@@ -70,20 +70,36 @@ public class WebSocketService
                     break;
                 }
                 var data = owner.Memory[ ..result.Count ];
-                await SendMessageAsync( connectionId, data, ct );
-                _logger.LogInformation( "{Message}", Encoding.UTF8.GetString( data.Span ) );
+                if ( _logger.IsEnabled( LogLevel.Debug ) )
+                {
+                    _logger.LogDebug( "{Message}", Encoding.UTF8.GetString( data.Span ) );
+                    // await SendMessageAsync( connectionId, data, ct );
+                }
 
                 var clientMessage = new ClientMessage( connectionId, data, owner );
                 await _channel.Writer.WriteAsync( clientMessage, ct );
                 ownershipTransferred = true;
             }
+            catch ( Exception ex ) when ( ex is OperationCanceledException or WebSocketException )
+            {
+                // OperationCanceledException: Normal termination via server shutdown or CancellationToken.
+                // WebSocketException: Network interruption, connection reset, or other socket-level errors; cannot be recovered.
+                if ( ex is WebSocketException wsEx )
+                    _logger.LogWarning(
+                        wsEx,
+                        "WebSocket error for connection {ConnectionId}: {ErrorCode}",
+                        connectionId, wsEx.WebSocketErrorCode
+                    );
+                break;
+            }
             catch ( Exception ex )
             {
-                _logger.LogError( ex, "Error in WebSocketService.ListenAsync for connection ID: {ConnectionId}", connectionId );
+                // Unexpected error during message processing (e.g., channel write failure)
+                // The socket itself may still be usable, log and continue to the next iteration
+                _logger.LogError( ex, "Unexpected error processing message for connection ID: {ConnectionId}", connectionId );
             }
             finally
             {
-                // Ensure that the rented memory is returned to the pool if ownership was not transferred
                 if ( !ownershipTransferred )
                 {
                     owner.Dispose();
