@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
+using DataTrackerApi.Models;
 using DataTrackerApi.Services;
 using Settings = DataTrackerApi.Infrastructure.Settings;
-using DataTrackerApi.Models;
 
 namespace DataTrackerApi.Controllers;
 
