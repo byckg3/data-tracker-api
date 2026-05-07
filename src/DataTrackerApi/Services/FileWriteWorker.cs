@@ -24,7 +24,7 @@ public class FileWriteWorker : BackgroundService
             {
                 try
                 {
-                    using var _= clientMessage;
+                    using var _ = clientMessage;
                     var payload = Encoding.UTF8.GetString( clientMessage.Payload.Span );
 
                     using ( Serilog.Context.LogContext.PushProperty( "ConnId", clientMessage.Id ) )

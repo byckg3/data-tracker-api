@@ -39,18 +39,12 @@ public class PlaybackService
         {
             return ( false, "File not found", null );
         }
-        return ( true, null, StreamLogAsync( relativePath ) );
+        return ( true, null, StreamLogAsync( fullPath ) );
     }
 
     private async IAsyncEnumerable<MovementLog> StreamLogAsync(
-        string filePath, [EnumeratorCancellation] CancellationToken ct = default )
+        string fullPath, [EnumeratorCancellation] CancellationToken ct = default )
     {
-        var fullPath = Path.Combine( BaseDir, filePath );
-        if ( !File.Exists( fullPath ) )
-        {
-            throw new FileNotFoundException( "File not found", fullPath );
-        }
-
         using var fs = new FileStream( fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
         using var reader = new StreamReader( fs );
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using DataTrackerApi.Services;
 using Settings = DataTrackerApi.Infrastructure.Settings;
+using DataTrackerApi.Models;
 
 namespace DataTrackerApi.Controllers;
 
@@ -20,16 +21,17 @@ public class PlaybackController : ControllerBase
     }
 
     [HttpGet( "{connectionId}/{date}" )]
-    public async Task<IActionResult> GetRecords( string connectionId, string date )
+    public ActionResult<IAsyncEnumerable<MovementLog>> GetRecords( string connectionId, string date )
     {
         try
         {
             var ( isSuccess, error, stream ) = _playbackService.PrepareStream( connectionId, date );
-            if ( !isSuccess )
+            return ( isSuccess, error ) switch
             {
-                return NotFound( error );
-            }
-            return Ok( stream );
+                ( true, _ )                    => Ok( stream ),
+                ( false, "File not found" )    => NotFound( error ),
+                ( false, _ )                   => BadRequest( error ),
+            };
         }
         catch ( Exception ex )
         {
@@ -56,12 +58,9 @@ public class PlaybackController : ControllerBase
 
             await foreach ( var record in stream.WithCancellation( ct ) )
             {
-                if ( ct.IsCancellationRequested )
-                {
-                    break;
-                }
                 string jsonString = JsonSerializer.Serialize( record, Settings.JsonOptions.Default );
-                _logger.LogInformation( "{Record}", jsonString );
+                if ( _logger.IsEnabled( LogLevel.Debug ) )
+                    _logger.LogDebug( "{Record}", jsonString );
 
                 await Response.WriteAsync( $"data: {jsonString}\n\n", ct );
                 await Response.Body.FlushAsync( ct );
@@ -77,7 +76,7 @@ public class PlaybackController : ControllerBase
             _logger.LogError( ex, "Error in PlaybackController.Play" );
             try
             {
-                await Response.WriteAsync( $"data: Error: {ex.Message}\n\n", ct );
+                await Response.WriteAsync( "data: Error: Internal server error\n\n", ct );
                 await Response.Body.FlushAsync( ct );
             }
             catch ( Exception innerEx )
