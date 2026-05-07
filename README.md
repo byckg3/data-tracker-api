@@ -54,7 +54,7 @@ dotnet build
 From the repository root:
 
 ```bash
-dotnet run --project src/DataTrackerApi/DataTrackerApi.csproj --launch-profile https
+dotnet run --project src/DataTrackerApi/DataTrackerApi.csproj
 ```
 
 Default URLs:
@@ -115,3 +115,38 @@ dotnet test --filter "Tag=TestOnly"
 ## Configuration
 
 Use `appsettings.Example.json` as a template for local settings.
+
+Current template includes:
+
+- `Logging`
+- `AllowedHosts`
+- `ConnectionStrings:DefaultConnection`
+
+## Optional Features
+
+### Exchange Rate Queries
+
+The API includes support for querying live exchange rates from the Frankfurter API (not part of core development).
+
+`GET /api/ExchangeRate?base={BASE}&quotes={QUOTE1,QUOTE2,...}`
+
+Example:
+
+```http
+GET /api/ExchangeRate?base=USD&quotes=EUR,GBP
+```
+
+Response:
+
+```json
+{
+  "date": "2026-05-08",
+  "base": "USD",
+  "rates": {
+    "EUR": 0.92,
+    "GBP": 0.79
+  }
+}
+```
+
+**Related tests**: `ExchangeRateServiceTests` (may require external connectivity)

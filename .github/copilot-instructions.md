@@ -1,10 +1,11 @@
-# Currency Tracker API — Copilot Instructions
+# Data Tracker API — Copilot Instructions
 
 ## Project Overview
 
-ASP.NET Core Web API (.NET 10) using a Controller → Service → Repository three-layer architecture for exchange rate queries.
+ASP.NET Core Web API (.NET 10) using a Controller → Service → Repository three-layer architecture for real-time data tracking via WebSocket, log persistence, and historical playback.
 
-- **Data source**: [Frankfurter API](https://api.frankfurter.dev)
+- **Core features**: WebSocket communication, log streaming (REST & SSE), message echo and persistence
+- **Optional features**: Exchange rate queries via Frankfurter API
 - **Test framework**: xUnit
 - **JSON serialization**: System.Text.Json
 
@@ -57,8 +58,8 @@ JsonSerializer.Serialize( obj, JsonOptions.Default )
 
 ## Unit Testing
 
-- Test classes go in `tests/CurrencyTrackerApi.Tests/`, mirroring the `src` directory structure
-- Test method naming: `MethodName_Scenario_ExpectedResult` (e.g. `FetchExchangeRatesAsync_ShouldReturnExchangeRateDtos`)
+- Test classes go in `tests/DataTrackerApi.Tests/`, mirroring the `src` directory structure
+- Test method naming: `MethodName_Scenario_ExpectedResult` (e.g. `StreamLogAsync_ShouldYieldMovementRecords`)
 - Mark integration tests (requiring external connections) with `[Trait("Tag", "TestOnly")]` to filter with `--filter "Tag=TestOnly"`
 - Use `[Fact]` for standard tests; use `[Theory]` + `[InlineData]` for parameterized tests
 
