@@ -23,7 +23,13 @@ public class WebSocketService
     {
         try
         {
-            AddSocket( connectionId, webSocket );
+            bool added = AddSocket( connectionId, webSocket );
+            if ( !added )
+            {
+                await CloseSocketAsync( webSocket );
+                return;
+            }
+            await NotifyStatusChanged( connectionId, true );
             await ListenAsync( connectionId, webSocket, ct );
         }
         catch ( Exception ex )
@@ -32,7 +38,11 @@ public class WebSocketService
         }
         finally
         {
-            RemoveSocket( connectionId );
+            bool removed = RemoveSocket( connectionId );
+            if ( removed )
+            {
+                await NotifyStatusChanged( connectionId, false );
+            }
             await CloseSocketAsync( webSocket );
         }
     }
@@ -76,7 +86,12 @@ public class WebSocketService
                     // await SendMessageAsync( connectionId, data, ct );
                 }
 
-                var clientMessage = new ClientMessage( connectionId, data, owner );
+                var clientMessage = new ClientMessage( owner )
+                {
+                    Id = connectionId,
+                    Payload = data,
+                    IsConnected = true
+                };
                 await _channel.Writer.WriteAsync( clientMessage, ct );
                 ownershipTransferred = true;
             }
@@ -106,7 +121,19 @@ public class WebSocketService
                 }
             }
         }
-        _logger.LogInformation( "WebSocket connection {ConnectionId} closed.", connectionId );
+    }
+
+    // TODO: multiple status
+    private async Task NotifyStatusChanged( string connectionId, bool isOnline )
+    {
+        var message = new ClientMessage()
+        {
+            Id = connectionId,
+            Payload = Encoding.UTF8.GetBytes( isOnline ? "[Connected]" : "[Disconnected]" ),
+            IsConnected = isOnline
+        };
+        await _channel.Writer.WriteAsync( message, CancellationToken.None );
+        _logger.LogInformation( "{ConnectionId} is now {Status}.", connectionId, isOnline ? "online" : "offline" );
     }
 
     private bool AddSocket( string id, WebSocket socket )
@@ -120,7 +147,7 @@ public class WebSocketService
         else
         {
             // Handle the case where the socket could not be added
-            _logger.LogWarning( "Failed to add WebSocket with ID: {ConnectionId}", id );
+            _logger.LogError( "Failed to add WebSocket with ID: {ConnectionId}", id );
         }
         return added;
     }

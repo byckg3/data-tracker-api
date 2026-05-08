@@ -4,16 +4,17 @@ namespace DataTrackerApi.Models;
 
 public readonly struct ClientMessage : IDisposable
 {
-    public string Id { get; init; }
-    public Memory<byte> Payload { get; init; }
-    private readonly IMemoryOwner<byte> _owner;
+    public required string Id { get; init; }
+    public Memory<byte> Payload { get; init; } = Memory<byte>.Empty;
+    public bool IsConnected { get; init; }  = false;
+    private readonly IMemoryOwner<byte>? _owner = null;
 
-    public ClientMessage( string id, Memory<byte> payload, IMemoryOwner<byte> owner )
+    public ClientMessage( IMemoryOwner<byte>? owner = null )
     {
         _owner = owner;
-        Id = id;
-        Payload = payload;
-    }
+     }
+
+    public ClientMessage() { }
 
     public void Dispose()
     {

@@ -25,7 +25,16 @@ public class FileWriteWorker : BackgroundService
                 try
                 {
                     using var _ = clientMessage;
-                    var payload = Encoding.UTF8.GetString( clientMessage.Payload.Span );
+                    string payload;
+                    if ( !clientMessage.IsConnected )
+                    {
+                        _logger.LogInformation( "Client {Id} has left.", clientMessage.Id );
+                        payload = "Connection closed.";
+                    }
+                    else
+                    {
+                        payload = Encoding.UTF8.GetString( clientMessage.Payload.Span );
+                    }
 
                     using ( Serilog.Context.LogContext.PushProperty( "ConnId", clientMessage.Id ) )
                     {

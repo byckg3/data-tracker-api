@@ -12,7 +12,7 @@ public class PlaybackServiceTests
 
     public PlaybackServiceTests()
     {
-        PlaybackService.BaseDir = FileSettings.ProjectDirectory;
+
         // Console.WriteLine( FileSettings.ProjectDirectory );
 
         // var logger = NullLogger<PlaybackService>.Instance;
@@ -21,25 +21,29 @@ public class PlaybackServiceTests
             builder.AddConsole();
         } );
         var logger = loggerFactory.CreateLogger<PlaybackService>();
-        _playbackService = new PlaybackService( logger );
+        _playbackService = new PlaybackService(logger)
+        {
+            BaseDir = FileSettings.ProjectDirectory
+        };
     }
 
     [Fact]
     [Trait( "Tag", "TestOnly" )]
     public async Task StreamLogAsync_ShouldStreamLogs()
     {
-        var connectionId = "6b56324e-7789-4e2d-bbe8-a6b435c266af";
-        var targetFilePath = Path.Combine( "logs", connectionId, "status-2026050602.log" );
-
+        var connectionId = "d97ddfbd-7c59-4bf7-8b5d-ac555fff3ede";
         // // Create a sample log file for testing
         // Directory.CreateDirectory( connectionId );
         // await File.WriteAllLinesAsync( targetFilePath, new[] { "Log entry 1", "Log entry 2", "Log entry 3" } );
 
         var cts = new CancellationTokenSource();
-        var logStream = _playbackService.StreamLogAsync( targetFilePath, cts.Token );
+        var ( isSuccess, error, logStream ) = _playbackService.PrepareStream( connectionId, "2026050618" );
 
         var numberOfLogsToRead = 3;
         var logs = new List<MovementLog>();
+
+        Assert.True( isSuccess, $"Expected success but got error: {error}" );
+        Assert.NotNull( logStream );
         await Assert.ThrowsAsync<TaskCanceledException>( async () =>
         {
             await foreach ( var log in logStream )
