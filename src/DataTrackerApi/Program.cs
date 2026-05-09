@@ -71,7 +71,7 @@ try
                     .AddScoped<PlaybackService>()
                     .AddSingleton<WebSocketService>()
                     .AddSingleton<DataChannel<ClientMessage>>()
-                    .AddHostedService<FileWriteWorker>();
+                    .AddHostedService<ClientFileWorker>();
     builder.Services.AddHttpClient<JsonRepository>();
 
     // builder.Services.AddSignalR();
