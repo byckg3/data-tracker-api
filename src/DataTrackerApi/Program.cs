@@ -1,14 +1,14 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Filters;
 
 using DataTrackerApi.Infrastructure.Channels;
 using DataTrackerApi.Infrastructure.Settings;
 using DataTrackerApi.Models;
 using DataTrackerApi.Repositories;
 using DataTrackerApi.Services;
-using Serilog.Filters;
-
+using DataTrackerApi.Services.Workers;
 
 try
 {
@@ -71,7 +71,9 @@ try
                     .AddScoped<PlaybackService>()
                     .AddSingleton<WebSocketService>()
                     .AddSingleton<DataChannel<ClientMessage>>()
-                    .AddHostedService<ClientFileWorker>();
+                    .AddSingleton<ClientFileManager>()
+                    .AddHostedService<ClientMessageConsumer>()
+                    .AddHostedService<ClientFileFlushScheduler>();
     builder.Services.AddHttpClient<JsonRepository>();
 
     // builder.Services.AddSignalR();
@@ -111,6 +113,3 @@ finally
 {
     Log.CloseAndFlush();
 }
-
-
-

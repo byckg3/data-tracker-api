@@ -7,4 +7,8 @@ public static class FileSettings
     public static string ProjectDirectory { get; set; } = Directory.GetParent( AppContext.BaseDirectory )?
                                                                    .Parent?.Parent?.Parent?
                                                                    .FullName ?? AppContext.BaseDirectory;
+
+    public static string ClientBaseDirectory => Path.Combine( BaseDirectory, "logs", "clients" );
+    public static string ClientFileNameFormat = "yyyyMMdd_HHmmss";
+    public static string ClientFileNameSuffix = ".txt";
 }

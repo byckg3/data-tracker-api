@@ -7,7 +7,7 @@ namespace DataTrackerApi.Services;
 
 public class PlaybackService
 {
-    public string BaseDir { get; set; } = Path.Combine( FileSettings.BaseDirectory, "logs" );
+    public string BaseDir { get; set; } = FileSettings.ClientBaseDirectory;
     private readonly ILogger<PlaybackService> _logger;
 
     public PlaybackService( ILogger<PlaybackService> logger )
@@ -16,18 +16,19 @@ public class PlaybackService
     }
 
     public ( bool IsSuccess, string? Error, IAsyncEnumerable<MovementLog>? Stream )
-        PrepareStream( string connectionId, string date )
+        PrepareStream( string connectionId, string datetime )
     {
         if ( !Guid.TryParse( connectionId, out _ ) )
             return ( false, "Invalid connection ID", null );
 
         if ( !DateTime.TryParseExact(
-                date, "yyyyMMddHH",
+                datetime, FileSettings.ClientFileNameFormat,
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.None, out _ ) )
             return ( false, "Invalid date format", null );
 
-        var relativePath = Path.Combine( connectionId, $"status-{date}.log" );
+        var relativePath = Path.Combine(
+                connectionId, $"{datetime}{FileSettings.ClientFileNameSuffix}" );
         var fullPath = Path.GetFullPath( Path.Combine( BaseDir, relativePath ) );
 
         if ( !fullPath.StartsWith(
