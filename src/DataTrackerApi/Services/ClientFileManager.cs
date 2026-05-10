@@ -106,11 +106,6 @@ public class ClientFileManager : IAsyncDisposable
         }
     }
 
-    public void Dispose()
-    {
-        throw new NotImplementedException();
-    }
-
     public async ValueTask DisposeAsync()
     {
         await CloseAllAsync();

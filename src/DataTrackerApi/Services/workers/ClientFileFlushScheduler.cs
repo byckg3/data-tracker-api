@@ -19,23 +19,20 @@ public class ClientFileFlushScheduler : BackgroundService
             _logger.LogInformation( "FileFlushScheduler started." );
             using var timer = new PeriodicTimer( _flushInterval );
 
-            while ( !stoppingToken.IsCancellationRequested )
+            while ( await timer.WaitForNextTickAsync( stoppingToken ) )
             {
-                while ( await timer.WaitForNextTickAsync( stoppingToken ) )
+                try
                 {
-                    try
-                    {
-                        await _clientFileManager.FlushAllAsync( stoppingToken );
-                    }
-                    catch ( OperationCanceledException )
-                    {
-                        _logger.LogInformation( "ClientFileFlushScheduler is stopping due to cancellation." );
-                        break;
-                    }
-                    catch ( Exception ex )
-                    {
-                        _logger.LogError( ex, "Error flushing file stream for writer." );
-                    }
+                    await _clientFileManager.FlushAllAsync( stoppingToken );
+                }
+                catch ( OperationCanceledException )
+                {
+                    _logger.LogInformation( "ClientFileFlushScheduler is stopping due to cancellation." );
+                    break;
+                }
+                catch ( Exception ex )
+                {
+                    _logger.LogError( ex, "Error flushing file stream for writer." );
                 }
             }
         }
