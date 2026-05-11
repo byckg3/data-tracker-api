@@ -4,7 +4,6 @@ public sealed class FileContext : IAsyncDisposable
     private readonly SemaphoreSlim _lock = new( 1, 1 );
     private readonly CancellationTokenSource _cts = new();
     private int _disposeSignal = 0;
-    private bool _disposed = false;
 
     public FileContext( FileStream stream )
     {
@@ -13,22 +12,23 @@ public sealed class FileContext : IAsyncDisposable
 
     public async Task WriteAsync( Memory<byte> data, CancellationToken ct = default )
     {
-        if ( _disposed ) return;
+        if ( Volatile.Read( ref _disposeSignal ) == 1 )
+            return;
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource( ct, _cts.Token );
         try
         {
-            await _lock.WaitAsync( linkedCts.Token );
+            var lockTaken = false;
             try
             {
-                if ( _disposed ) return;
+                await _lock.WaitAsync( linkedCts.Token );
+                lockTaken = true;
                 // ObjectDisposedException.ThrowIf( _disposed, this );
-
                 await _fs.WriteAsync( data, linkedCts.Token );
             }
             finally
             {
-                if ( !_disposed )
+                if ( lockTaken )
                     _lock.Release();
             }
         }
@@ -42,19 +42,23 @@ public sealed class FileContext : IAsyncDisposable
 
     public async Task FlushAsync( CancellationToken ct = default )
     {
-        if ( _disposed ) return;
+        if ( Volatile.Read( ref _disposeSignal ) == 1 )
+            return;
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource( ct, _cts.Token );
         try
         {
-            await _lock.WaitAsync( linkedCts.Token );
+            var lockTaken = false;
             try
             {
+                await _lock.WaitAsync( linkedCts.Token );
+                lockTaken = true;
+
                 await _fs.FlushAsync( linkedCts.Token );
             }
             finally
             {
-                if ( !_disposed )
+                if ( lockTaken )
                     _lock.Release();
             }
         }
@@ -77,7 +81,6 @@ public sealed class FileContext : IAsyncDisposable
         await _lock.WaitAsync();
         try
         {
-            _disposed = true;
             await _fs.DisposeAsync();
         }
         finally
