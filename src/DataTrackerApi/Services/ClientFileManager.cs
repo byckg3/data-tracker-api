@@ -8,8 +8,10 @@ namespace DataTrackerApi.Services;
 
 public class ClientFileManager : IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, FileStream> _writers = [];
+    private readonly ConcurrentDictionary<string, FileContext> _fileContexts = [];
     private readonly ILogger<ClientFileManager> _logger;
+    private readonly int BufferSize = 1024 * 8;
+    private static readonly byte[] _newlineBytes = Encoding.UTF8.GetBytes( Environment.NewLine );
     public string BaseDir { get; set; } = FileSettings.ClientBaseDirectory;
 
     public ClientFileManager( ILogger<ClientFileManager> logger )
@@ -17,36 +19,36 @@ public class ClientFileManager : IAsyncDisposable
         _logger = logger;
     }
 
-    public async Task WriteToClientFileAsync( ClientMessage clientMessage, CancellationToken cancellationToken = default )
+    public async Task WriteToClientFileAsync( ClientMessage client, CancellationToken ct = default )
     {
-        if ( !clientMessage.IsConnected && _writers.ContainsKey( clientMessage.Id ) )
+        if ( !_fileContexts.ContainsKey( client.Id ) )
         {
-            await CloseAsync( clientMessage.Id );
-            _logger.LogInformation( "Client {Id} has left.", clientMessage.Id );
-
-            return;
-        }
-
-        if ( !_writers.ContainsKey( clientMessage.Id ) )
-        {
-            var fs = CreateFileStream( clientMessage.Id );
-            if ( !_writers.TryAdd( clientMessage.Id, fs ) )
+            var fileContext = CreateFileContext( client.Id );
+            var added = _fileContexts.TryAdd( client.Id, fileContext );
+            if ( !added )
             {
                 // Handle the case where the writer could not be added
-                await fs.DisposeAsync();
+                await fileContext.DisposeAsync();
             }
         }
         await WriteLineAsync(
-                clientMessage.Id, clientMessage.Payload, cancellationToken );
+                client.Id, client.Payload, ct );
+
+        if ( !client.IsConnected )
+        {
+            await CloseAsync( client.Id );
+            _logger.LogInformation( "Client {Id} has left.", client.Id );
+            // return;
+        }
     }
 
-    public async Task FlushAllAsync( CancellationToken cancellationToken = default )
+    public async Task FlushAllAsync( CancellationToken ct = default )
     {
-        foreach ( var ( id, writer ) in _writers )
+        foreach ( var ( id, fileContext ) in _fileContexts )
         {
             try
             {
-                await writer.FlushAsync( cancellationToken );
+                await fileContext.FlushAsync( ct );
             }
             catch ( Exception ex )
             {
@@ -55,9 +57,9 @@ public class ClientFileManager : IAsyncDisposable
         }
     }
 
-    private FileStream CreateFileStream( string connectionId )
+    private FileStream CreateFileStream( string id )
     {
-        string clientDir = connectionId;
+        string clientDir = id;
         string folderPath = Path.Combine( BaseDir, clientDir );
         Directory.CreateDirectory( folderPath );
 
@@ -65,42 +67,46 @@ public class ClientFileManager : IAsyncDisposable
         string fullPath = Path.Combine( folderPath, $"{fileName}.txt" );
 
         return new FileStream(
-            fullPath, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, true );
+            fullPath, FileMode.Append, FileAccess.Write, FileShare.Read, BufferSize, true );
     }
 
-    private async Task WriteLineAsync( string connectionId, Memory<byte> data, CancellationToken cancellationToken = default )
+    private FileContext CreateFileContext( string id )
     {
-        if ( _writers.TryGetValue( connectionId, out var writer ) )
-        {
-            await writer.WriteAsync( data , cancellationToken );
-            await writer.WriteAsync(
-                Encoding.UTF8.GetBytes( Environment.NewLine ) , cancellationToken );
+        var fs = CreateFileStream( id );
+        return new FileContext( fs );
+    }
 
-            // await writer.FlushAsync( cancellationToken );
+    private async Task WriteLineAsync( string id, Memory<byte> data, CancellationToken ct = default )
+    {
+        if ( _fileContexts.TryGetValue( id, out var fileContext ) )
+        {
+            await fileContext.WriteAsync( data , ct );
+            await fileContext.WriteAsync( _newlineBytes , ct );
+            // await fileContext.FlushAsync( ct );
         }
     }
 
-    private async Task CloseAsync( string connectionId )
+    private async Task CloseAsync( string id )
     {
-        if ( _writers.TryRemove( connectionId, out var writer ) )
+        if ( _fileContexts.TryRemove( id, out var fileContext ) )
         {
-            await writer.DisposeAsync();
+            await fileContext.DisposeAsync();
         }
     }
 
     public async Task CloseAllAsync()
     {
-        foreach ( var ( id, writer ) in _writers )
+        foreach ( var ( id, fileContext ) in _fileContexts )
         {
-            await writer.DisposeAsync();
+            await fileContext.DisposeAsync();
         }
-        _writers.Clear();
+        _fileContexts.Clear();
     }
 
-    private void LogMessage( string connectionId, Memory<byte> data )
+    private void LogMessage( string id, Memory<byte> data )
     {
         string payload = Encoding.UTF8.GetString( data.Span );
-        using ( Serilog.Context.LogContext.PushProperty( "ConnId", connectionId ) )
+        using ( Serilog.Context.LogContext.PushProperty( "ConnId", id ) )
         {
             _logger.LogInformation( "{Payload}", payload );
         }

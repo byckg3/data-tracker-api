@@ -2,7 +2,6 @@ using DataTrackerApi.Infrastructure.Settings;
 using DataTrackerApi.Models;
 using DataTrackerApi.Services;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DataTrackerApi.Tests.Services;
 

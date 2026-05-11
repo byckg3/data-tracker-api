@@ -17,7 +17,7 @@ public class WebSocketController : ControllerBase
     }
 
     [Route("/")]
-    public async Task Get()
+    public async Task Get( CancellationToken ct )
     {
         if ( HttpContext.WebSockets.IsWebSocketRequest )
         {
@@ -25,7 +25,7 @@ public class WebSocketController : ControllerBase
             string connectionId = Guid.NewGuid().ToString();
             _logger.LogInformation( "New WebSocket connection established: {ConnectionId}", connectionId );
 
-            await _webSocketService.ServeAsync( connectionId, webSocket, HttpContext.RequestAborted );
+            await _webSocketService.ServeAsync( connectionId, webSocket, ct );
         }
         else
         {

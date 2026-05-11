@@ -6,10 +6,10 @@ using DataTrackerApi.Infrastructure.Channels;
 using DataTrackerApi.Models;
 
 namespace DataTrackerApi.Services;
-public class WebSocketService
+public class WebSocketService : IAsyncDisposable
 {
-    private static readonly ConcurrentDictionary<string, WebSocket> _sockets = [];
-    private static readonly int BufferSize = 1024 * 4;
+    private readonly ConcurrentDictionary<string, WebSocket> _sockets = [];
+    private readonly int BufferSize = 1024 * 4;
     private readonly DataChannel<ClientMessage> _channel;
     private readonly ILogger<WebSocketService> _logger;
 
@@ -38,12 +38,9 @@ public class WebSocketService
         }
         finally
         {
-            bool removed = RemoveSocket( connectionId );
-            if ( removed )
-            {
-                await NotifyStatusChanged( connectionId, false );
-            }
+            RemoveSocket( connectionId );
             await CloseSocketAsync( webSocket );
+            await NotifyStatusChanged( connectionId, false );
         }
     }
 
@@ -52,10 +49,7 @@ public class WebSocketService
         if ( _sockets.TryGetValue( connectionId, out var socket ) && socket.State == WebSocketState.Open )
         {
             await socket.SendAsync(
-                message,
-                WebSocketMessageType.Text,
-                true,
-                ct );
+                message, WebSocketMessageType.Text, true, ct );
         }
         else
         {
@@ -79,6 +73,7 @@ public class WebSocketService
 
                     break;
                 }
+                Console.WriteLine( $"Received message: {result.Count} bytes" );
                 var data = owner.Memory[ ..result.Count ];
                 if ( _logger.IsEnabled( LogLevel.Debug ) )
                 {
@@ -183,6 +178,14 @@ public class WebSocketService
             {
                 _logger.LogError( ex, "Error closing WebSocket" );
             }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach ( var socket in _sockets.Values )
+        {
+            await CloseSocketAsync( socket );
         }
     }
 }
