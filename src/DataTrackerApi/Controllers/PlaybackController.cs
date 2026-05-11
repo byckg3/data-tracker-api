@@ -20,12 +20,12 @@ public class PlaybackController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet( "{connectionId}/{date}" )]
-    public ActionResult<IAsyncEnumerable<MovementLog>> GetRecords( string connectionId, string date )
+    [HttpGet( "{connectionId}/{datetime}" )]
+    public ActionResult<IAsyncEnumerable<MovementLog>> GetRecords( string connectionId, string datetime )
     {
         try
         {
-            var ( isSuccess, error, stream ) = _playbackService.PrepareStream( connectionId, date );
+            var ( isSuccess, error, stream ) = _playbackService.PrepareStream( connectionId, datetime );
             return ( isSuccess, error ) switch
             {
                 ( true, _ )                    => Ok( stream ),
@@ -40,15 +40,15 @@ public class PlaybackController : ControllerBase
         }
     }
 
-    [HttpGet( "sse/{connectionId}/{date}" )]
-    public async Task Play( string connectionId, string date, CancellationToken ct )
+    [HttpGet( "sse/{connectionId}/{datetime}" )]
+    public async Task Play( string connectionId, string datetime, CancellationToken ct )
     {
         Response.Headers.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
         Response.Headers.Connection = "keep-alive";
         try
         {
-            var ( isSuccess, error, stream ) = _playbackService.PrepareStream( connectionId, date );
+            var ( isSuccess, error, stream ) = _playbackService.PrepareStream( connectionId, datetime );
             if ( !isSuccess || stream is null )
             {
                 await Response.WriteAsync( $"data: Error: {error}\n\n", ct );

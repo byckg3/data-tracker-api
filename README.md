@@ -24,7 +24,7 @@ src/DataTrackerApi/
   Controllers/      # API entry points (Playback / WebSocket)
   Services/         # Business logic for playback and websocket workflows
   Repositories/     # Data access and file persistence support
-  Infrastructure/   # Shared settings and channels
+  Infrastructure/   # Shared channels, IO context, and settings
   Models/           # DTOs and message models
 tests/DataTrackerApi.Tests/
   Services/
