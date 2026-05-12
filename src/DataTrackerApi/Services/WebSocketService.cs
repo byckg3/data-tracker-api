@@ -38,9 +38,9 @@ public class WebSocketService : IAsyncDisposable
         }
         finally
         {
+            await NotifyStatusChanged( connectionId, false );
             RemoveSocket( connectionId );
             await CloseSocketAsync( webSocket );
-            await NotifyStatusChanged( connectionId, false );
         }
     }
 
@@ -95,7 +95,7 @@ public class WebSocketService : IAsyncDisposable
                 // OperationCanceledException: Normal termination via server shutdown or CancellationToken.
                 // WebSocketException: Network interruption, connection reset, or other socket-level errors; cannot be recovered.
                 if ( ex is WebSocketException wsEx )
-                    _logger.LogWarning(
+                    _logger.LogError(
                         wsEx,
                         "WebSocket error for connection {ConnectionId}: {ErrorCode}",
                         connectionId, wsEx.WebSocketErrorCode
@@ -187,5 +187,6 @@ public class WebSocketService : IAsyncDisposable
         {
             await CloseSocketAsync( socket );
         }
+        _channel.Writer.TryComplete();
     }
 }

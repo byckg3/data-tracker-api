@@ -1,3 +1,5 @@
+using static System.Threading.CancellationTokenSource;
+
 public sealed class FileContext : IAsyncDisposable
 {
     private readonly FileStream _fs;
@@ -15,9 +17,9 @@ public sealed class FileContext : IAsyncDisposable
         if ( Volatile.Read( ref _disposeSignal ) == 1 )
             return;
 
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource( ct, _cts.Token );
         try
         {
+            using var linkedCts = CreateLinkedTokenSource( ct, _cts.Token );
             var lockTaken = false;
             try
             {
@@ -32,8 +34,7 @@ public sealed class FileContext : IAsyncDisposable
                     _lock.Release();
             }
         }
-        catch ( Exception ex ) when ( ex is OperationCanceledException or ObjectDisposedException )
-        { }
+        catch ( Exception ex ) when ( ex is OperationCanceledException or ObjectDisposedException ) { }
         catch ( Exception )
         {
             throw;
@@ -45,9 +46,9 @@ public sealed class FileContext : IAsyncDisposable
         if ( Volatile.Read( ref _disposeSignal ) == 1 )
             return;
 
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource( ct, _cts.Token );
         try
         {
+            using var linkedCts = CreateLinkedTokenSource( ct, _cts.Token );
             var lockTaken = false;
             try
             {
@@ -62,8 +63,8 @@ public sealed class FileContext : IAsyncDisposable
                     _lock.Release();
             }
         }
-        catch ( Exception ex ) when ( ex is OperationCanceledException or ObjectDisposedException )
-        { }
+        catch ( Exception ex ) when (
+            ex is OperationCanceledException or ObjectDisposedException ) { }
         catch ( Exception )
         {
             throw;
