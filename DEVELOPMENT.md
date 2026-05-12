@@ -13,4 +13,5 @@
 
 
 ### refs
-- [A tour of the C# language](https://learn.microsoft.com/zh-tw/dotnet/csharp/tour-of-csharp/)
+- [C# documentation](https://learn.microsoft.com/en-us/dotnet/csharp/tour-of-csharp/)
+- [.NET fundamentals documentation](https://learn.microsoft.com/zh-tw/dotnet/fundamentals/)
