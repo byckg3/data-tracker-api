@@ -58,7 +58,6 @@ public sealed class FileContext : IAsyncDisposable
                 await _lock.WaitAsync( linkedCts.Token );
                 lockTaken = true;
 
-                _lastAccessTime = DateTime.UtcNow;
                 await _fs.FlushAsync( linkedCts.Token );
             }
             finally
@@ -77,6 +76,7 @@ public sealed class FileContext : IAsyncDisposable
 
     public bool IsExpired( TimeSpan timeout )
     {
+        Console.WriteLine( $"{DateTime.UtcNow - _lastAccessTime} > {timeout}" );
         return ( DateTime.UtcNow - _lastAccessTime ) > timeout;
     }
 

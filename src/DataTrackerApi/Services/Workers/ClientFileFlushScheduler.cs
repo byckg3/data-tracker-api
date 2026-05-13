@@ -4,7 +4,7 @@ public class ClientFileFlushScheduler : BackgroundService
 {
     private readonly ClientFileManager _clientFileManager;
     private readonly ILogger<ClientFileFlushScheduler> _logger;
-    private readonly TimeSpan _flushInterval = TimeSpan.FromSeconds( 1 );
+    private readonly TimeSpan _flushInterval = TimeSpan.FromSeconds( 3 );
 
     public ClientFileFlushScheduler( ClientFileManager clientFileManager, ILogger<ClientFileFlushScheduler> logger )
     {
