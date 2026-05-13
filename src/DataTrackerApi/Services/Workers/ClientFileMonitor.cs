@@ -29,7 +29,7 @@ public class ClientFileMonitor : BackgroundService
                         _logger.LogInformation( "Closed {Count} inactive file(s).", removed );
                     }
                 }
-                catch ( Exception ex )
+                catch ( Exception ex ) when ( ex is not OperationCanceledException )
                 {
                     _logger.LogError( ex, "Error monitoring client files." );
                 }
