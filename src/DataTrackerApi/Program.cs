@@ -73,6 +73,7 @@ try
                     .AddSingleton<DataChannel<ClientMessage>>()
                     .AddSingleton<ClientFileManager>()
                     .AddHostedService<ClientMessageConsumer>()
+                    .AddHostedService<ClientFileMonitor>()
                     .AddHostedService<ClientFileFlushScheduler>();
     builder.Services.AddHttpClient<JsonRepository>();
 

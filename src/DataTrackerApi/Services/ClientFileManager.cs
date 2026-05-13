@@ -2,12 +2,14 @@ using System.Collections.Concurrent;
 using System.Text;
 using DataTrackerApi.Infrastructure.Settings;
 using DataTrackerApi.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DataTrackerApi.Services;
 
 public class ClientFileManager : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, FileContext> _fileContexts = [];
+    private readonly IMemoryCache _cache;
     private readonly ILogger<ClientFileManager> _logger;
     private readonly int BufferSize = 1024 * 8;
     private static readonly byte[] _newlineBytes = Encoding.UTF8.GetBytes( Environment.NewLine );
@@ -16,6 +18,11 @@ public class ClientFileManager : IAsyncDisposable
     public ClientFileManager( ILogger<ClientFileManager> logger )
     {
         _logger = logger;
+        _cache = new MemoryCache( new MemoryCacheOptions
+        {
+            SizeLimit = 1000, // Set a size limit for the cache (optional)
+            ExpirationScanFrequency = TimeSpan.FromMinutes( 5 ) // Set how often to scan for expired items (optional)
+        } );
     }
 
     public async Task WriteToClientFileAsync( ClientMessage client, CancellationToken ct = default )
@@ -54,6 +61,26 @@ public class ClientFileManager : IAsyncDisposable
                 _logger.LogError( ex, "Error flushing file stream for client ID: {Id}", id );
             }
         }
+    }
+
+    public async Task<int> CleanExpiredAsync( TimeSpan expireAfter, CancellationToken ct = default )
+    {
+        int removed = 0;
+        foreach ( var ( id, ctx ) in _fileContexts )
+        {
+            if ( ct.IsCancellationRequested )
+                break;
+
+            if ( ctx.IsExpired( expireAfter ) )
+            {
+                if ( _fileContexts.TryRemove( id, out var fileContext ) )
+                {
+                    await fileContext.DisposeAsync();
+                    removed++;
+                }
+            }
+        }
+        return removed;
     }
 
     private FileStream CreateFileStream( string id )
