@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using System.Text;
 using System.Buffers;
 using DataTrackerApi.Infrastructure.Channels;
@@ -8,7 +9,7 @@ using DataTrackerApi.Models;
 namespace DataTrackerApi.Services;
 public class WebSocketService : IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, WebSocket> _sockets = [];
+    private readonly ConcurrentDictionary<string, ClientConnection> _connections = [];
     private readonly int BufferSize = 1024 * 4;
     private readonly DataChannel<ClientMessage> _channel;
     private readonly ILogger<WebSocketService> _logger;
@@ -19,36 +20,62 @@ public class WebSocketService : IAsyncDisposable
         _logger = logger;
     }
 
-    public async Task ServeAsync( string connectionId, WebSocket webSocket, CancellationToken ct = default )
+    public async Task ServeAsync( ClientConnection clientConnection, CancellationToken ct = default )
     {
+        Task? forwardTask = null;
         try
         {
-            bool added = AddSocket( connectionId, webSocket );
+            bool added = AddConnection( clientConnection );
             if ( !added )
             {
-                await CloseSocketAsync( webSocket );
+                await CloseConnectionAsync( clientConnection );
                 return;
             }
-            await NotifyStatusChanged( connectionId, true );
-            await ListenAsync( connectionId, webSocket, ct );
+
+            forwardTask = Task.Run( async () =>
+            {
+                await foreach ( var msg in clientConnection.Reader.ReadAllAsync( ct ) )
+                {
+                    await _channel.Writer.WriteAsync( msg, ct );
+                }
+            }, ct );
+
+            await NotifyStatusChanged( clientConnection, true );
+            await ListenAsync( clientConnection, ct );
         }
         catch ( Exception ex )
         {
-            _logger.LogError( ex, "Unexpected error in WebSocketService.ServeAsync for {ConnectionId}", connectionId );
+            _logger.LogError( ex, "Unexpected error in WebSocketService.ServeAsync for {ConnectionId}", clientConnection.Id );
         }
         finally
         {
-            await NotifyStatusChanged( connectionId, false );
-            RemoveSocket( connectionId );
-            await CloseSocketAsync( webSocket );
+            await NotifyStatusChanged( clientConnection, false );
+            RemoveConnection( clientConnection.Id );
+            await CloseConnectionAsync( clientConnection );
+            if ( forwardTask is not null )
+            {
+                try
+                {
+                    await forwardTask;
+                }
+                catch ( Exception ex ) when ( ex is OperationCanceledException or ChannelClosedException )
+                {
+                    _logger.LogDebug(
+                        "Forward task stopped for connection {ConnectionId}: {ExceptionType}",
+                        clientConnection.Id,
+                        ex.GetType().Name
+                    );
+                }
+            }
         }
     }
 
     public async Task SendMessageAsync( string connectionId, Memory<byte> message, CancellationToken ct = default )
     {
-        if ( _sockets.TryGetValue( connectionId, out var socket ) && socket.State == WebSocketState.Open )
+        if ( _connections.TryGetValue( connectionId, out var clientConnection ) &&
+             clientConnection.Socket.State == WebSocketState.Open )
         {
-            await socket.SendAsync(
+            await clientConnection.Socket.SendAsync(
                 message, WebSocketMessageType.Text, true, ct );
         }
         else
@@ -57,8 +84,9 @@ public class WebSocketService : IAsyncDisposable
         }
     }
 
-    private async Task ListenAsync( string connectionId, WebSocket webSocket, CancellationToken ct = default )
+    private async Task ListenAsync( ClientConnection connection, CancellationToken ct = default )
     {
+        var webSocket = connection.Socket;
         while ( webSocket.State == WebSocketState.Open )
         {
             var owner = MemoryPool<byte>.Shared.Rent( BufferSize );
@@ -68,26 +96,25 @@ public class WebSocketService : IAsyncDisposable
                 var result = await webSocket.ReceiveAsync( owner.Memory, ct );
                 if ( result.MessageType == WebSocketMessageType.Close )
                 {
-                    _logger.LogInformation( "Received close message from client {ConnectionId}.", connectionId );
-                    await CloseSocketAsync( webSocket );
-
+                    _logger.LogInformation( "Received close message from client {ConnectionId}.", connection.Id );
                     break;
                 }
-                Console.WriteLine( $"Received message: {result.Count} bytes" );
+
                 var data = owner.Memory[ ..result.Count ];
                 if ( _logger.IsEnabled( LogLevel.Debug ) )
                 {
+                    _logger.LogDebug( "Received {ByteCount} bytes:", result.Count );
                     _logger.LogDebug( "{Message}", Encoding.UTF8.GetString( data.Span ) );
                     // await SendMessageAsync( connectionId, data, ct );
                 }
 
                 var clientMessage = new ClientMessage( owner )
                 {
-                    Id = connectionId,
+                    Id = connection.Id,
                     Payload = data,
                     IsConnected = true
                 };
-                await _channel.Writer.WriteAsync( clientMessage, ct );
+                await connection.Writer.WriteAsync( clientMessage, ct );
                 ownershipTransferred = true;
             }
             catch ( Exception ex ) when ( ex is OperationCanceledException or WebSocketException )
@@ -98,7 +125,7 @@ public class WebSocketService : IAsyncDisposable
                     _logger.LogError(
                         wsEx,
                         "WebSocket error for connection {ConnectionId}: {ErrorCode}",
-                        connectionId, wsEx.WebSocketErrorCode
+                        connection.Id, wsEx.WebSocketErrorCode
                     );
                 break;
             }
@@ -106,7 +133,7 @@ public class WebSocketService : IAsyncDisposable
             {
                 // Unexpected error during message processing (e.g., channel write failure)
                 // The socket itself may still be usable, log and continue to the next iteration
-                _logger.LogError( ex, "Unexpected error processing message for connection ID: {ConnectionId}", connectionId );
+                _logger.LogError( ex, "Unexpected error processing message for connection ID: {ConnectionId}", connection.Id );
             }
             finally
             {
@@ -119,73 +146,70 @@ public class WebSocketService : IAsyncDisposable
     }
 
     // TODO: multiple status
-    private async Task NotifyStatusChanged( string connectionId, bool isOnline )
+    private async Task NotifyStatusChanged( ClientConnection clientConnection, bool isOnline )
     {
         var message = new ClientMessage()
         {
-            Id = connectionId,
+            Id = clientConnection.Id,
             Payload = Encoding.UTF8.GetBytes( isOnline ? "[Connected]" : "[Disconnected]" ),
             IsConnected = isOnline
         };
-        await _channel.Writer.WriteAsync( message, CancellationToken.None );
-        _logger.LogInformation( "{ConnectionId} is now {Status}.", connectionId, isOnline ? "online" : "offline" );
+        await clientConnection.Writer.WriteAsync( message, CancellationToken.None );
+        _logger.LogInformation(
+            "{ConnectionId} is now {Status}.", clientConnection.Id, isOnline ? "online" : "offline" );
     }
 
-    private bool AddSocket( string id, WebSocket socket )
+    private bool AddConnection( ClientConnection connection )
     {
-        bool added = _sockets.TryAdd( id, socket );
+        bool added = _connections.TryAdd( connection.Id, connection );
         if ( added )
         {
-            // log the successful addition of the socket
-            _logger.LogInformation( "WebSocket added with ID: {ConnectionId}", id );
+            // log the successful addition of the connection
+            _logger.LogInformation( "ClientConnection added with ID: {ConnectionId}", connection.Id );
         }
         else
         {
-            // Handle the case where the socket could not be added
-            _logger.LogError( "Failed to add WebSocket with ID: {ConnectionId}", id );
+            // Handle the case where the connection could not be added
+            _logger.LogError( "Failed to add ClientConnection with ID: {ConnectionId}", connection.Id );
         }
         return added;
     }
 
-    private bool RemoveSocket( string id )
+    private bool RemoveConnection( string id )
     {
-        bool removed = _sockets.TryRemove( id, out var _ );
+        bool removed = _connections.TryRemove( id, out var _ );
         if ( removed )
         {
-            _logger.LogInformation( "WebSocket removed with ID: {ConnectionId}", id );
+            _logger.LogInformation( "ClientConnection removed with ID: {ConnectionId}", id );
         }
         else
         {
-            // Handle the case where the socket could not be removed
-            _logger.LogWarning( "Failed to remove WebSocket with ID: {ConnectionId}", id );
+            // Handle the case where the connection could not be removed
+            _logger.LogWarning( "Failed to remove ClientConnection with ID: {ConnectionId}", id );
         }
         return removed;
     }
 
-    private async Task CloseSocketAsync( WebSocket socket )
+    private async Task CloseConnectionAsync( ClientConnection connection )
     {
-        if ( socket.State is WebSocketState.Open or WebSocketState.CloseReceived )
+        try
         {
-            try
-            {
-                using var closeCts = new CancellationTokenSource( TimeSpan.FromSeconds( 3 ) );
-                await socket.CloseAsync(
-                    socket.CloseStatus ?? WebSocketCloseStatus.NormalClosure,
-                    socket.CloseStatusDescription ?? "Closed by server",
-                    closeCts.Token );
-            }
-            catch ( Exception ex )
-            {
-                _logger.LogError( ex, "Error closing WebSocket" );
-            }
+            await connection.DisposeAsync();
+            _logger.LogInformation(
+                "Closed WebSocket connection with ID: {ConnectionId}", connection.Id );
+        }
+        catch ( Exception ex )
+        {
+            _logger.LogError(
+                ex, "Error while closing WebSocket connection with ID: {ConnectionId}", connection.Id );
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        foreach ( var socket in _sockets.Values )
+        foreach ( var connection in _connections.Values )
         {
-            await CloseSocketAsync( socket );
+            await CloseConnectionAsync( connection );
         }
         _channel.Writer.TryComplete();
     }

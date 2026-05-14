@@ -12,7 +12,6 @@ graph TD
     B -- "ReadAllAsync" --> W[File Processing Worker]
 
     subgraph "Background Processing"
-
         W -- "Append by ConnectionID" --> D[(Local Disk / File Storage)]
     end
 ```

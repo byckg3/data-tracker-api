@@ -4,7 +4,6 @@ using DataTrackerApi.Services;
 
 namespace DataTrackerApi.Controllers;
 
-//
 public class WebSocketController : ControllerBase
 {
     private readonly WebSocketService _webSocketService;
@@ -23,9 +22,10 @@ public class WebSocketController : ControllerBase
         {
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             string connectionId = Guid.NewGuid().ToString();
-            _logger.LogInformation( "New WebSocket connection established: {ConnectionId}", connectionId );
+            var clientConnection = new ClientConnection( connectionId, webSocket );
 
-            await _webSocketService.ServeAsync( connectionId, webSocket, ct );
+            _logger.LogInformation( "New WebSocket connection established: {ConnectionId}", connectionId );
+            await _webSocketService.ServeAsync( clientConnection, ct );
         }
         else
         {
