@@ -17,7 +17,7 @@ try
 
     var logBaseDir = Path.Combine( FileSettings.BaseDirectory, "logs" );
     Log.Logger = new LoggerConfiguration()
-        .MinimumLevel.Information()
+        .MinimumLevel.Debug()
         .Enrich.FromLogContext()
         .WriteTo.Logger( lc =>
             lc.Filter.ByExcluding( Matching.WithProperty( "ConnId" ) )

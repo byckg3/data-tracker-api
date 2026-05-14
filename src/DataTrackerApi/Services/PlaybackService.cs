@@ -18,8 +18,8 @@ public class PlaybackService
     public ( bool IsSuccess, string? Error, IAsyncEnumerable<MovementLog>? Stream )
         PrepareStream( string connectionId, string datetime )
     {
-        if ( !Guid.TryParse( connectionId, out _ ) )
-            return ( false, "Invalid connection ID", null );
+        // if ( !Guid.TryParse( connectionId, out _ ) )
+        //     return ( false, "Invalid connection ID", null );
 
         if ( !DateTime.TryParseExact(
                 datetime, FileSettings.ClientFileNameFormat,

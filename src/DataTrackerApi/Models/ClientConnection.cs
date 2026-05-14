@@ -14,7 +14,14 @@ public class ClientConnection : IAsyncDisposable
     {
         Id = id;
         Socket = socket;
-        _messageChannel = Channel.CreateBounded<ClientMessage>( 500 );
+        _messageChannel = Channel.CreateBounded<ClientMessage>(
+            new BoundedChannelOptions( 500 )
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                FullMode = BoundedChannelFullMode.Wait
+            }
+        );
         Writer = _messageChannel.Writer;
         Reader = _messageChannel.Reader;
     }

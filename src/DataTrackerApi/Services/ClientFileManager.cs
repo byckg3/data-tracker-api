@@ -2,14 +2,12 @@ using System.Collections.Concurrent;
 using System.Text;
 using DataTrackerApi.Infrastructure.Settings;
 using DataTrackerApi.Models;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace DataTrackerApi.Services;
 
 public class ClientFileManager : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, FileContext> _fileContexts = [];
-    private readonly IMemoryCache _cache;
     private readonly ILogger<ClientFileManager> _logger;
     private readonly int BufferSize = 1024 * 8;
     private static readonly byte[] _newlineBytes = Encoding.UTF8.GetBytes( Environment.NewLine );
@@ -18,11 +16,6 @@ public class ClientFileManager : IAsyncDisposable
     public ClientFileManager( ILogger<ClientFileManager> logger )
     {
         _logger = logger;
-        _cache = new MemoryCache( new MemoryCacheOptions
-        {
-            SizeLimit = 1000, // Set a size limit for the cache (optional)
-            ExpirationScanFrequency = TimeSpan.FromMinutes( 5 ) // Set how often to scan for expired items (optional)
-        } );
     }
 
     public async Task WriteToClientFileAsync( ClientMessage client, CancellationToken ct = default )
@@ -91,6 +84,7 @@ public class ClientFileManager : IAsyncDisposable
 
         string fileName = DateTime.UtcNow.ToString( FileSettings.ClientFileNameFormat );
         string fullPath = Path.Combine( folderPath, $"{fileName}.txt" );
+        _logger.LogInformation( "Creating file stream for client {Id}: {FileName}", id, fileName );
 
         return new FileStream(
             fullPath, FileMode.Append, FileAccess.Write, FileShare.Read, BufferSize, true );

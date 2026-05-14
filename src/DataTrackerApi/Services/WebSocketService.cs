@@ -103,8 +103,8 @@ public class WebSocketService : IAsyncDisposable
                 var data = owner.Memory[ ..result.Count ];
                 if ( _logger.IsEnabled( LogLevel.Debug ) )
                 {
-                    _logger.LogDebug( "Received {ByteCount} bytes:", result.Count );
-                    _logger.LogDebug( "{Message}", Encoding.UTF8.GetString( data.Span ) );
+                    _logger.LogDebug(
+                        "{ConnectionId}: {Message}", connection.Id, Encoding.UTF8.GetString( data.Span ) );
                     // await SendMessageAsync( connectionId, data, ct );
                 }
 

@@ -21,7 +21,7 @@ public class WebSocketController : ControllerBase
         if ( HttpContext.WebSockets.IsWebSocketRequest )
         {
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-            string connectionId = Guid.NewGuid().ToString();
+            string connectionId = HttpContext.Connection.Id; // Guid.NewGuid().ToString();
             var clientConnection = new ClientConnection( connectionId, webSocket );
 
             _logger.LogInformation( "New WebSocket connection established: {ConnectionId}", connectionId );
