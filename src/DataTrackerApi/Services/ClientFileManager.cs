@@ -9,7 +9,7 @@ public class ClientFileManager : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, FileContext> _fileContexts = [];
     private readonly ILogger<ClientFileManager> _logger;
-    private readonly int BufferSize = 1024 * 8;
+    private readonly int BufferSize = 1024 * 16;
     private static readonly byte[] _newlineBytes = Encoding.UTF8.GetBytes( Environment.NewLine );
     public string BaseDir { get; set; } = FileSettings.ClientBaseDirectory;
 
@@ -135,5 +135,6 @@ public class ClientFileManager : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await CloseAllAsync();
+        _logger.LogInformation( "ClientFileManager disposed and all file streams closed." );
     }
 }

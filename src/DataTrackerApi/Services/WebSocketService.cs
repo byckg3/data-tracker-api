@@ -212,5 +212,6 @@ public class WebSocketService : IAsyncDisposable
             await CloseConnectionAsync( connection );
         }
         _channel.Writer.TryComplete();
+        _logger.LogInformation( "WebSocketService disposed and all connections closed." );
     }
 }
