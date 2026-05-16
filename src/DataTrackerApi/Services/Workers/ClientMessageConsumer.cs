@@ -5,11 +5,11 @@ namespace DataTrackerApi.Services.Workers;
 
 public class ClientMessageConsumer : BackgroundService
 {
-    private readonly DataChannel<ClientMessage> _channel;
+    private readonly DataDispatcher<ClientMessage> _channel;
     private readonly ClientFileManager _clientFileManager;
     private readonly ILogger<ClientMessageConsumer> _logger;
 
-    public ClientMessageConsumer( DataChannel<ClientMessage> channel,
+    public ClientMessageConsumer( DataDispatcher<ClientMessage> channel,
                                   ClientFileManager clientFileManager,
                                   ILogger<ClientMessageConsumer> logger )
     {
@@ -23,7 +23,7 @@ public class ClientMessageConsumer : BackgroundService
         try
         {
             _logger.LogInformation( "FileWriteWorker started." );
-            await foreach ( var clientMessage in _channel.Reader.ReadAllAsync( stoppingToken ) )
+            await foreach ( var clientMessage in _channel.ReceiveAllAsync( stoppingToken ) )
             {
                 try
                 {

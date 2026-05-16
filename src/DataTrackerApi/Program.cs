@@ -70,7 +70,7 @@ try
                     .AddScoped<ExchangeRateService>()
                     .AddScoped<PlaybackService>()
                     .AddSingleton<WebSocketService>()
-                    .AddSingleton<DataChannel<ClientMessage>>()
+                    .AddSingleton<DataDispatcher<ClientMessage>>()
                     .AddSingleton<ClientFileManager>()
                     .AddHostedService<ClientMessageConsumer>()
                     .AddHostedService<ClientFileMonitor>()

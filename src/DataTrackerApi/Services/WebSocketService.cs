@@ -11,10 +11,10 @@ public class WebSocketService : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, ClientConnection> _connections = [];
     private readonly int BufferSize = 1024 * 4;
-    private readonly DataChannel<ClientMessage> _channel;
+    private readonly DataDispatcher<ClientMessage> _channel;
     private readonly ILogger<WebSocketService> _logger;
 
-    public WebSocketService( DataChannel<ClientMessage> channel, ILogger<WebSocketService> logger )
+    public WebSocketService( DataDispatcher<ClientMessage> channel, ILogger<WebSocketService> logger )
     {
         _channel = channel;
         _logger = logger;
@@ -36,7 +36,7 @@ public class WebSocketService : IAsyncDisposable
             {
                 await foreach ( var msg in clientConnection.Reader.ReadAllAsync( ct ) )
                 {
-                    await _channel.Writer.WriteAsync( msg, ct );
+                    await _channel.SendAsync( msg, ct );
                 }
             }, ct );
 
@@ -211,7 +211,6 @@ public class WebSocketService : IAsyncDisposable
         {
             await CloseConnectionAsync( connection );
         }
-        _channel.Writer.TryComplete();
         _logger.LogInformation( "WebSocketService disposed and all connections closed." );
     }
 }
