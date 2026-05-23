@@ -1,0 +1,66 @@
+# Comprehensive .dockerignore template for ASP.NET Core applications
+**/docs/
+**/logs/
+*.md
+# ---------------------------------------------------------------------
+# .NET Build and Release Outputs
+# ---------------------------------------------------------------------
+# Exclude local compilation and publish artifacts to avoid environment conflicts
+**/bin/
+**/obj/
+**/publish/
+
+# ---------------------------------------------------------------------
+# IDE and Editor Files
+# ---------------------------------------------------------------------
+# Visual Studio source control, user-specific, and temporary configuration files
+.vs/
+**/*.user
+**/*.suo
+**/*.sln.docstates
+**/*.lscache
+
+# Visual Studio Code workspace settings and caches
+.vscode/
+
+# Rider / IntelliJ JetBrains editor specific files
+.idea/
+
+# ---------------------------------------------------------------------
+# Source Control and CI/CD
+# ---------------------------------------------------------------------
+# Exclude Git history and pipeline files unless specifically required inside the container
+.git/
+.gitignore
+.github/
+.gitlab-ci.yml
+azure-pipelines.yml
+
+# ---------------------------------------------------------------------
+# Operating System Garbage Files
+# ---------------------------------------------------------------------
+# macOS specific folders
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows specific thumbnail and desktop files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ---------------------------------------------------------------------
+# Frontend and Package Manager Dependencies (If using SPA/WebOptimizer)
+# ---------------------------------------------------------------------
+# Exclude local node packages to let the Dockerfile build them natively if needed
+**/node_modules/
+**/npm-debug.log*
+**/yarn-error.log*
+
+# ---------------------------------------------------------------------
+# Docker Configuration Files
+# ---------------------------------------------------------------------
+# Prevent Docker configurations from copying into themselves
+Dockerfile
+.dockerignore
+docker-compose*
