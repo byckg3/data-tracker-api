@@ -1,4 +1,5 @@
-### commands
+## Commands
+### dotnet
 - dotnet --version
 - dotnet build
 - dotnet run [<FILE_NAME>.cs] [--launch-profile https] [--project src\<PATH>\<PROJECT_NAME>.csproj]
@@ -7,10 +8,15 @@
 - dotnet dev-certs https --trust
 - dotnet test --filter "Tag=TestOnly"
 - dotnet publish src\<PATH>\<PROJECT_NAME>.csproj -c Release -o ./publish
+
+### docker
 - docker build -t byckg3/data-tracker-api .
 - docker run -it --rm -p 5253:8080 \
   -e ASPNETCORE_ENVIRONMENT=Development \
   byckg3/data-tracker-api
+- docker compose up -d
+- docker compose down
+
 ### urls
 - http://localhost:5253/scalar
 

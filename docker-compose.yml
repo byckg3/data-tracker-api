@@ -1,0 +1,31 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  alloy:
+    image: grafana/alloy:latest
+    container_name: grafana-alloy
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - //var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - GCLOUD_HOSTED_METRICS_URL=${GCLOUD_HOSTED_METRICS_URL}
+      - GCLOUD_HOSTED_METRICS_ID=${GCLOUD_HOSTED_METRICS_ID}
+      - GCLOUD_SCRAPE_INTERVAL=${GCLOUD_SCRAPE_INTERVAL}
+      - GCLOUD_HOSTED_LOGS_URL=${GCLOUD_HOSTED_LOGS_URL}
+      - GCLOUD_HOSTED_LOGS_ID=${GCLOUD_HOSTED_LOGS_ID}
+      - GCLOUD_RW_API_KEY=${GCLOUD_RW_API_KEY}
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    restart: unless-stopped
+
+  api:
+    image: byckg3/data-tracker-api:latest
+    container_name: data-tracker-api
+    ports:
+      - "5253:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./logs:/app/logs:rw
