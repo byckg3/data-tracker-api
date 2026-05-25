@@ -1,3 +1,5 @@
+// Logging Configuration
+// Discover Docker containers and extract metadata.
 discovery.docker "linux" {
   host = "unix:///var/run/docker.sock"
 }
@@ -45,53 +47,56 @@ loki.write "grafana_cloud_loki" {
   }
 }
 
-// prometheus.exporter.self "alloy_check" { }
+// Metrics Configuration
+prometheus.exporter.self "alloy_metrics" { }
 
-// discovery.relabel "alloy_check" {
-//   targets = prometheus.exporter.self.alloy_check.targets
+discovery.relabel "alloy_metrics" {
+  targets = prometheus.exporter.self.alloy_metrics.targets
 
-//   rule {
-//     target_label = "instance"
-//     replacement  = constants.hostname
-//   }
+  rule {
+    target_label = "instance"
+    replacement  = constants.hostname
+  }
 
-//   rule {
-//     target_label = "alloy_hostname"
-//     replacement  = constants.hostname
-//   }
+  rule {
+    target_label = "alloy_hostname"
+    replacement  = constants.hostname
+  }
 
-//   rule {
-//     target_label = "job"
-//     replacement  = "integrations/alloy-check"
-//   }
-// }
+  rule {
+    target_label = "job"
+    replacement  = "integrations/alloy-check"
+  }
+}
 
-// prometheus.scrape "alloy_check" {
-//   targets    = discovery.relabel.alloy_check.output
-//   forward_to = [prometheus.relabel.alloy_check.receiver]
-//   scrape_interval = "60s"
-// }
+prometheus.scrape "alloy_metrics_scraper" {
+  targets    = discovery.relabel.alloy_metrics.output
+  forward_to = [ prometheus.relabel.alloy_metrics_filter.receiver ]
 
-// prometheus.relabel "alloy_check" {
-//   forward_to = [prometheus.remote_write.metrics_service.receiver]
+  scrape_interval = "60s"
+}
 
-//   rule {
-//     source_labels = ["__name__"]
-//     regex         = "(prometheus_target_sync_length_seconds_sum|prometheus_target_scrapes_.*|prometheus_target_interval.*|prometheus_sd_discovered_targets|alloy_build.*|prometheus_remote_write_wal_samples_appended_total|process_start_time_seconds)"
-//     action        = "keep"
-//   }
-// }
+prometheus.relabel "alloy_metrics_filter" {
 
-// prometheus.remote_write "metrics_service" {
-//   endpoint {
-//     url = sys.env( "GCLOUD_HOSTED_METRICS_URL" )
+  rule {
+    source_labels = ["__name__"]
+    regex         = "(prometheus_target_sync_length_seconds_sum|prometheus_target_scrapes_.*|prometheus_target_interval.*|prometheus_sd_discovered_targets|alloy_build.*|prometheus_remote_write_wal_samples_appended_total|process_start_time_seconds)"
+    action        = "keep"
+  }
 
-//     basic_auth {
-//       username = sys.env( "GCLOUD_HOSTED_METRICS_ID" )
-//       password = sys.env( "GCLOUD_RW_API_KEY" )
-//     }
-//   }
-// }
+  forward_to = [ prometheus.remote_write.metrics_service.receiver ]
+}
+
+prometheus.remote_write "metrics_service" {
+  endpoint {
+    url = sys.env( "GCLOUD_HOSTED_METRICS_URL" )
+
+    basic_auth {
+      username = sys.env( "GCLOUD_HOSTED_METRICS_ID" )
+      password = sys.env( "GCLOUD_RW_API_KEY" )
+    }
+  }
+}
 
 // discovery.relabel "integrations_node_exporter" {
 //   targets = prometheus.exporter.unix.integrations_node_exporter.targets
