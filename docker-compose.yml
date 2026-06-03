@@ -5,8 +5,10 @@ services:
     ports:
       - "12345:12345"
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config.alloy:/etc/alloy/config.alloy:ro
-      - //var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs:/var/log/data-tracker-api:ro
+
     environment:
       - GCLOUD_HOSTED_METRICS_URL=${GCLOUD_HOSTED_METRICS_URL}
       - GCLOUD_HOSTED_METRICS_ID=${GCLOUD_HOSTED_METRICS_ID}
@@ -14,6 +16,7 @@ services:
       - GCLOUD_HOSTED_LOGS_URL=${GCLOUD_HOSTED_LOGS_URL}
       - GCLOUD_HOSTED_LOGS_ID=${GCLOUD_HOSTED_LOGS_ID}
       - GCLOUD_RW_API_KEY=${GCLOUD_RW_API_KEY}
+
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     restart: unless-stopped
 

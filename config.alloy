@@ -1,30 +1,32 @@
 // Logging Configuration
+
 // Discover Docker containers and extract metadata.
-discovery.docker "linux" {
+// https://grafana.com/docs/grafana-cloud/send-data/alloy/reference/components/discovery/discovery.docker/
+discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }
-
+// https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.relabel/
 discovery.relabel "api_logs_filter" {
-  targets = discovery.docker.linux.targets
+  targets = discovery.docker.containers.targets
 
   rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    source_labels = [ "__meta_docker_container_label_com_docker_compose_service" ]
     regex         = "web|api"
     action        = "keep"
   }
 
   rule {
-    source_labels = ["__meta_docker_container_name"]
+    source_labels = [ "__meta_docker_container_name" ]
     regex = "/(.*)"
     target_label = "container_name"
   }
 
   rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    source_labels = [ "__meta_docker_container_label_com_docker_compose_service" ]
     target_label  = "compose_service_name"
   }
 }
-
+// https://grafana.com/docs/grafana-cloud/send-data/alloy/reference/components/loki/loki.source.docker/
 loki.source.docker "api_logs_extractor" {
   host       = "unix:///var/run/docker.sock"
 
@@ -35,7 +37,7 @@ loki.source.docker "api_logs_extractor" {
 
   forward_to = [ loki.write.grafana_cloud_loki.receiver ]
 }
-
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/
 loki.write "grafana_cloud_loki" {
   endpoint {
     url = sys.env( "GCLOUD_HOSTED_LOGS_URL" )
@@ -47,7 +49,27 @@ loki.write "grafana_cloud_loki" {
   }
 }
 
+// https://grafana.com/docs/grafana-cloud/send-data/alloy/reference/components/loki/loki.source.file/
+loki.source.file "file_extractor" {
+  targets    = [
+    {
+      __path__    = "/var/log/{syslog,messages}",
+      "job"       = "system",
+    },
+    {
+      __path__    = "/var/log/data-tracker-api/**/*.{log,txt,json}",
+      "job"       = "client",
+    },
+  ]
+  file_match {
+    enabled = true
+  }
+  forward_to = [ loki.write.grafana_cloud_loki.receiver ]
+}
+
 // Metrics Configuration
+
+// https://grafana.com/docs/grafana-cloud/send-data/alloy/reference/components/prometheus/prometheus.exporter.self/
 prometheus.exporter.self "alloy_metrics" { }
 
 discovery.relabel "alloy_metrics" {
@@ -68,7 +90,7 @@ discovery.relabel "alloy_metrics" {
     replacement  = "integrations/alloy-check"
   }
 }
-
+// https://grafana.com/docs/grafana-cloud/send-data/alloy/reference/components/prometheus/prometheus.scrape/
 prometheus.scrape "alloy_metrics_scraper" {
   targets    = discovery.relabel.alloy_metrics.output
   forward_to = [ prometheus.relabel.alloy_metrics_filter.receiver ]
@@ -80,13 +102,13 @@ prometheus.relabel "alloy_metrics_filter" {
 
   rule {
     source_labels = ["__name__"]
-    regex         = "(prometheus_target_sync_length_seconds_sum|prometheus_target_scrapes_.*|prometheus_target_interval.*|prometheus_sd_discovered_targets|alloy_build.*|prometheus_remote_write_wal_samples_appended_total|process_start_time_seconds)"
+    regex         = "^(?:prometheus_(?:target_sync_length_seconds_sum|target_scrapes_.*|target_interval.*|sd_discovered_targets|remote_write_wal_samples_appended_total)|alloy_build.*|process_start_time_seconds)$"
     action        = "keep"
   }
 
   forward_to = [ prometheus.remote_write.metrics_service.receiver ]
 }
-
+// https://grafana.com/docs/grafana-cloud/send-data/alloy/reference/components/prometheus/prometheus.remote_write/
 prometheus.remote_write "metrics_service" {
   endpoint {
     url = sys.env( "GCLOUD_HOSTED_METRICS_URL" )
@@ -98,93 +120,41 @@ prometheus.remote_write "metrics_service" {
   }
 }
 
-// discovery.relabel "integrations_node_exporter" {
-//   targets = prometheus.exporter.unix.integrations_node_exporter.targets
-
-//   rule {
-//     target_label = "instance"
-//     replacement  = "default"
-//   }
-
-//   rule {
-//     target_label = "job"
-//     replacement = "integrations/node_exporter"
-//   }
+// Host Cadvisor on the Docker socket to expose container metrics.
+// https://grafana.com/docs/grafana-cloud/send-data/alloy/reference/components/prometheus/prometheus.exporter.cadvisor/
+// only works on Linux systems. On other operating systems, Alloy writes a warning to the logs and the component doesn’t collect container metrics.
+// prometheus.exporter.cadvisor "container_metrics" {
+//   docker_only = true
 // }
 
-// prometheus.exporter.unix "integrations_node_exporter" {
-//   disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs"]
+// discovery.relabel "container_metrics" {
+//     targets = prometheus.exporter.cadvisor.container_metrics.targets
 
-//   filesystem {
-//     fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|tmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
-//     mount_points_exclude = "^/(dev|proc|run/credentials/.+|sys|var/lib/docker/.+)($|/)"
-//     mount_timeout        = "5s"
-//   }
+//     rule {
+//         target_label = "job"
+//         replacement  = "integrations/docker"
+//     }
 
-//   netclass {
-//     ignored_devices = "^(veth.*|cali.*|[a-f0-9]{15})$"
-//   }
-
-//   netdev {
-//     device_exclude = "^(veth.*|cali.*|[a-f0-9]{15})$"
-//   }
+//     rule {
+//         target_label = "instance"
+//         replacement  = constants.hostname
+//     }
 // }
 
-// prometheus.scrape "integrations_node_exporter" {
-//   targets    = discovery.relabel.integrations_node_exporter.output
-//   forward_to = [prometheus.relabel.integrations_node_exporter.receiver]
+// // Configure a prometheus.scrape component to collect cadvisor metrics.
+// prometheus.scrape "container_metrics_scraper" {
+//   targets    = discovery.relabel.container_metrics.output
+//   forward_to = [ prometheus.relabel.container_metrics_filter.receiver ]
+
+//   scrape_interval = "10s"
 // }
 
-// prometheus.relabel "integrations_node_exporter" {
-//   forward_to = [prometheus.remote_write.metrics_service.receiver]
-
+// prometheus.relabel "container_metrics_filter" {
 //   rule {
-//     source_labels = ["__name__"]
-//     regex         = "node_scrape_collector_.+"
+//     source_labels = [ "name" ]
+//     regex         = ".*alloy.*"
 //     action        = "drop"
 //   }
-// }
 
-// loki.source.journal "logs_integrations_integrations_node_exporter_journal_scrape" {
-//   max_age       = "24h0m0s"
-//   relabel_rules = discovery.relabel.logs_integrations_integrations_node_exporter_journal_scrape.rules
-//   forward_to    = [loki.write.grafana_cloud_loki.receiver]
-// }
-
-// local.file_match "logs_integrations_integrations_node_exporter_direct_scrape" {
-//   path_targets = [{
-//     __address__ = "localhost",
-//     __path__    = "/var/log/{syslog,messages,*.log}",
-//     instance    = "default",
-//     job         = "integrations/node_exporter",
-//   }]
-// }
-
-// discovery.relabel "logs_integrations_integrations_node_exporter_journal_scrape" {
-//   targets = []
-
-//   rule {
-//     source_labels = ["__journal__systemd_unit"]
-//     target_label  = "unit"
-//   }
-
-//   rule {
-//     source_labels = ["__journal__boot_id"]
-//     target_label  = "boot_id"
-//   }
-
-//   rule {
-//     source_labels = ["__journal__transport"]
-//     target_label  = "transport"
-//   }
-
-//   rule {
-//     source_labels = ["__journal_priority_keyword"]
-//     target_label  = "level"
-//   }
-// }
-
-// loki.source.file "logs_integrations_integrations_node_exporter_direct_scrape" {
-//   targets    = local.file_match.logs_integrations_integrations_node_exporter_direct_scrape.targets
-//   forward_to = [loki.write.grafana_cloud_loki.receiver]
+//   forward_to = [ prometheus.remote_write.metrics_service.receiver ]
 // }
