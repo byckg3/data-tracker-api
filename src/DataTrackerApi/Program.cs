@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using Serilog;
@@ -9,6 +10,7 @@ using DataTrackerApi.Models;
 using DataTrackerApi.Repositories;
 using DataTrackerApi.Services;
 using DataTrackerApi.Services.Workers;
+using DataTrackerApi.Infrastructure.Persistence;
 
 try
 {
@@ -43,6 +45,11 @@ try
             )
         )
         .CreateLogger();
+    builder.Services.AddDbContext<AppDbContext>( options =>
+    {
+        options.UseNpgsql(
+            builder.Configuration.GetConnectionString( "DefaultConnection" ) );
+    } );
 
     builder.Host.UseSerilog();
 

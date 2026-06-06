@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DataTrackerApi.Tests.Services;
 
+// [Trait( "Tag", "TestOnly" )]
 public class PlaybackServiceTests
 {
     private readonly PlaybackService _playbackService;
@@ -27,7 +28,6 @@ public class PlaybackServiceTests
     }
 
     [Fact]
-    [Trait( "Tag", "TestOnly" )]
     public async Task StreamLogAsync_ShouldStreamLogs()
     {
         var connectionId = "d97ddfbd-7c59-4bf7-8b5d-ac555fff3ede";

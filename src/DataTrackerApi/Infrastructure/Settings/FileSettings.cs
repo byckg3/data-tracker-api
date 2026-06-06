@@ -8,7 +8,24 @@ public static class FileSettings
                                                                    .Parent?.Parent?.Parent?
                                                                    .FullName ?? AppContext.BaseDirectory;
 
+    public static string SolutionDirectory => GetSolutionDirectory();
+
     public static string ClientBaseDirectory => Path.Combine( BaseDirectory, "logs", "clients" );
     public static string ClientFileNameFormat = "yyyyMMdd_HHmmss";
     public static string ClientFileNameSuffix = ".txt";
+
+    private static string GetSolutionDirectory()
+    {
+        var currentDir = new DirectoryInfo( AppContext.BaseDirectory );
+        while ( currentDir != null && !currentDir.EnumerateFiles( "*.sln*" ).Any() )
+        {
+            currentDir = currentDir.Parent;
+        }
+
+        if ( currentDir == null )
+        {
+            throw new Exception( "Solution directory not found." );
+        }
+        return currentDir.FullName;
+    }
 }
