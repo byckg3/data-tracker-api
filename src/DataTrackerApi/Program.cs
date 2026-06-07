@@ -11,6 +11,7 @@ using DataTrackerApi.Repositories;
 using DataTrackerApi.Services;
 using DataTrackerApi.Services.Workers;
 using DataTrackerApi.Infrastructure.Persistence;
+using DataTrackerApi.Features.Users.Services;
 
 try
 {
@@ -52,10 +53,15 @@ try
         )
         .CreateLogger();
 
-    builder.Services.AddDbContext<AppDbContext>( options =>
+    var connectionString = builder.Configuration.GetConnectionString( "DefaultConnection" );
+    if ( string.IsNullOrEmpty( connectionString ) )
     {
-        options.UseNpgsql(
-            builder.Configuration.GetConnectionString( "DefaultConnection" ) );
+        throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    }
+
+    builder.Services.AddDbContextPool<AppDbContext>( options =>
+    {
+        options.UseNpgsql( connectionString );
     } );
 
     builder.Host.UseSerilog();
@@ -83,6 +89,7 @@ try
     builder.Services.AddOpenApi()
                     .AddScoped<ExchangeRateService>()
                     .AddScoped<PlaybackService>()
+                    .AddScoped<UserService>()
                     .AddSingleton<WebSocketService>()
                     .AddSingleton<DataDispatcher<ClientMessage>>()
                     .AddSingleton<ClientFileManager>()
