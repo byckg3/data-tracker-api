@@ -2,12 +2,22 @@
 ### dotnet
 - dotnet --version
 - dotnet build
-- dotnet run [<FILE_NAME>.cs] [--launch-profile https] [--project src\<PATH>\<PROJECT_NAME>.csproj]
+- dotnet run [<FILE_NAME>.cs] [--launch-profile https] [--project /<PROJECT_DIR>/<PROJECT_NAME>.csproj]
 - dotnet sln add <PROJECT_NAME>.csproj
 - dotnet new webapi -controllers
 - dotnet dev-certs https --trust
 - dotnet test --filter "Tag=TestOnly"
 - dotnet publish src\<PATH>\<PROJECT_NAME>.csproj -c Release -o ./publish
+
+### dotnet user-secrets
+- dotnet user-secrets init
+- dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<URL>" [--project /<PROJECT_DIR>/<PROJECT_NAME>.csproj]
+- dotnet user-secrets list --project src/DataTrackerApi/DataTrackerApi.csproj
+
+### dotnet ef
+- dotnet ef migrations add AddUserTable --output-dir Infrastructure/Persistence/Migrations
+- dotnet ef migrations remove
+- dotnet ef database update --project src/DataTrackerApi/DataTrackerApi.csproj
 
 ### docker
 - docker build -t byckg3/data-tracker-api .

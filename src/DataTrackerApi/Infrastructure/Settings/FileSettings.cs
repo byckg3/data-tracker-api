@@ -16,7 +16,7 @@ public static class FileSettings
 
     private static string GetSolutionDirectory()
     {
-        var currentDir = new DirectoryInfo( AppContext.BaseDirectory );
+        var currentDir = new DirectoryInfo( BaseDirectory );
         while ( currentDir != null && !currentDir.EnumerateFiles( "*.sln*" ).Any() )
         {
             currentDir = currentDir.Parent;

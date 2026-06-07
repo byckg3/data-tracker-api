@@ -17,6 +17,12 @@ try
     var builder = WebApplication.CreateBuilder( args );
     FileSettings.BaseDirectory = builder.Environment.ContentRootPath;
 
+    // builder.Configuration
+    //        .SetBasePath( FileSettings.SolutionDirectory )
+    //        .AddJsonFile( "appsettings.json", optional: true )
+    //        .AddJsonFile( "appsettings.Development.json", optional: true )
+    //        .AddEnvironmentVariables();
+
     var logBaseDir = Path.Combine( FileSettings.BaseDirectory, "logs" );
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Debug()
@@ -45,6 +51,7 @@ try
             )
         )
         .CreateLogger();
+
     builder.Services.AddDbContext<AppDbContext>( options =>
     {
         options.UseNpgsql(
@@ -113,7 +120,7 @@ try
 
     app.Run();
 }
-catch ( Exception ex )
+catch ( Exception ex ) when ( ex.GetType().Name is not "HostAbortedException" )
 {
     Log.Fatal( ex, "Application terminated unexpectedly" );
 }
