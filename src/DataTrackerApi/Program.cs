@@ -124,7 +124,7 @@ try
 
     // app.MapHub<ChatHub>( "/chatHub" );
 
-    app.Run();
+    await app.RunAsync();
 }
 catch ( Exception ex ) when ( ex.GetType().Name is not "HostAbortedException" )
 {
