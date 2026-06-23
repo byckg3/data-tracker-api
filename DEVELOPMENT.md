@@ -19,6 +19,14 @@
 - dotnet ef migrations remove
 - dotnet ef database update --project src/DataTrackerApi/DataTrackerApi.csproj
 
+### tool
+- dotnet tool install --global dotnet-dump
+- dotnet-dump ps
+- dotnet-dump collect -p [PID]
+- dotnet-dump analyze [DUMP_FILE_NAME]
+- syncblk
+- dumpasync
+
 ### docker
 - docker build -t byckg3/data-tracker-api .
 - docker run -it --rm -p 5253:8080 \
