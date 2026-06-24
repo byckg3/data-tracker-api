@@ -42,5 +42,6 @@
 ### refs
 - [C# documentation](https://learn.microsoft.com/en-us/dotnet/csharp/tour-of-csharp/)
 - [.NET fundamentals documentation](https://learn.microsoft.com/zh-tw/dotnet/fundamentals/)
+- [Entity Framework Core](https://learn.microsoft.com/zh-tw/ef/core/)
 - [Mermaid Live Editor](https://mermaid.live/edit)
 - [Grafana Alloy](https://grafana.com/docs/grafana-cloud/send-data/alloy/)
