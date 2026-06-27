@@ -24,35 +24,6 @@ try
     //        .AddJsonFile( "appsettings.Development.json", optional: true )
     //        .AddEnvironmentVariables();
 
-    var logBaseDir = Path.Combine( FileSettings.BaseDirectory, "logs" );
-    Log.Logger = new LoggerConfiguration()
-        .MinimumLevel.Debug()
-        .Enrich.FromLogContext()
-        .WriteTo.Logger( lc =>
-            lc.Filter.ByExcluding( Matching.WithProperty( "ConnId" ) )
-              .WriteTo.Console( outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}" )
-        )
-        .WriteTo.Logger( lc =>
-            lc.Filter.ByIncludingOnly( Matching.WithProperty( "ConnId" ) )
-              .WriteTo.Async( asyncWrite =>
-                    asyncWrite.Map(
-                        keyPropertyName: "ConnId",
-                        defaultKey: "Global",
-                        configure: ( connId, mapWrite ) => mapWrite.File(
-                            path: Path.Combine( logBaseDir, connId, "status-.log" ),
-                            rollingInterval: RollingInterval.Hour,
-                            buffered: true,
-                            flushToDiskInterval: TimeSpan.FromSeconds( 5 ),
-                            retainedFileCountLimit: 24,             // 只保留最近 24 個檔案（一天）
-                            fileSizeLimitBytes: 100 * 1024 * 1024,  // 單個檔案上限 100MB
-                            outputTemplate: "{Message:lj}{NewLine}"
-                        )
-                    ),
-                    bufferSize: 10000
-            )
-        )
-        .CreateLogger();
-
     var connectionString = builder.Configuration.GetConnectionString( "DefaultConnection" );
     if ( string.IsNullOrEmpty( connectionString ) )
     {
@@ -64,7 +35,37 @@ try
         options.UseNpgsql( connectionString );
     } );
 
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration.ReadFrom.Configuration(context.Configuration);
+
+        // if (context.HostingEnvironment.IsProduction()) {}
+        configuration.WriteTo.Logger( lc =>
+            lc.Filter.ByIncludingOnly( Matching.WithProperty( "ConnId" ) )
+              .WriteTo.Async(
+                bufferSize: 20000,
+                configure: asyncConfig =>
+                {
+                    asyncConfig.Map(
+                        keyPropertyName: "ConnId",
+                        defaultKey: "Global",
+                        configure: (id, mapConfig) =>
+                        {
+                            mapConfig.File(
+                                path: Path.Combine(FileSettings.ClientBaseDirectory, id, ".txt"),
+                                rollingInterval: RollingInterval.Hour,
+                                buffered: true,
+                                flushToDiskInterval: TimeSpan.FromSeconds(5),
+                                retainedFileCountLimit: 24,             // 只保留最近 24 個檔案
+                                fileSizeLimitBytes: 100 * 1024 * 1024,  // 單個檔案上限 100MB
+                                outputTemplate: "{Message:lj}{NewLine}"
+                            );
+                        }
+                    );
+                }
+            )
+        );
+    });
 
     builder.Services.AddCors( options =>
     {
