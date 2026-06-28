@@ -52,7 +52,7 @@ try
                         configure: (id, mapConfig) =>
                         {
                             mapConfig.File(
-                                path: Path.Combine(FileSettings.ClientBaseDirectory, id, ".txt"),
+                                path: Path.Combine(FileSettings.ClientBaseDirectory, id,  FileSettings.ClientFileNameSuffix),
                                 rollingInterval: RollingInterval.Hour,
                                 buffered: true,
                                 flushToDiskInterval: TimeSpan.FromSeconds(5),
