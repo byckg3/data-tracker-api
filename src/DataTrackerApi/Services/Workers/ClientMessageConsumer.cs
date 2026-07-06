@@ -30,7 +30,7 @@ public class ClientMessageConsumer : BackgroundService
                     using var _ = clientMessage;
                     await _clientFileManager.WriteToClientFileAsync( clientMessage, stoppingToken );
                 }
-                catch ( Exception ex )
+                catch ( Exception ex ) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError( ex, "Error processing client message with ID: {Id}", clientMessage.Id );
                 }

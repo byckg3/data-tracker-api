@@ -30,7 +30,7 @@ public class ClientFileFlushScheduler : BackgroundService
                     _logger.LogInformation( "ClientFileFlushScheduler is stopping due to cancellation." );
                     break;
                 }
-                catch ( Exception ex )
+                catch ( Exception ex ) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError( ex, "Error flushing file stream for writer." );
                 }
