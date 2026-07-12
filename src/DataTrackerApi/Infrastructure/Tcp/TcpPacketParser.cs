@@ -24,10 +24,10 @@ public class TcpPacketParser : BackgroundService
             ReadResult result = await reader.ReadAsync(stoppingToken);
             ReadOnlySequence<byte> buffer = result.Buffer;
 
-            while (TryReadMessage(ref buffer, out ReadOnlySequence<byte> line))
+            while (TryReadMessage(ref buffer, out var message))
             {
                 // Process the line.
-                _logger.LogInformation("Received message: {Message}", line.ToArray());
+                _logger.LogInformation("Received message: {Message}", message.ToArray());
             }
 
             // Tell the PipeReader how much of the buffer has been consumed.
