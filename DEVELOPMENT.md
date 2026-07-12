@@ -35,6 +35,10 @@
 - docker compose up -d
 - docker compose down
 
+### wsl2
+- ip addr show eth0 | grep inet
+- nc -l 8080
+
 ### urls
 - http://localhost:5253/scalar
 
@@ -45,3 +49,4 @@
 - [Entity Framework Core](https://learn.microsoft.com/zh-tw/ef/core/)
 - [Mermaid Live Editor](https://mermaid.live/edit)
 - [Grafana Alloy](https://grafana.com/docs/grafana-cloud/send-data/alloy/)
+- [System.IO.Pipelines](https://learn.microsoft.com/zh-tw/dotnet/standard/io/pipelines#pipereader-common-problems)
