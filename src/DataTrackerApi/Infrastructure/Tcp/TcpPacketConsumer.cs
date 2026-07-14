@@ -4,12 +4,12 @@ using System.IO.Pipelines;
 
 namespace DataTrackerApi.Infrastructure.Tcp;
 
-public class TcpPacketParser : BackgroundService
+public class TcpPacketConsumer : BackgroundService
 {
-    private readonly ILogger<TcpPacketParser> _logger;
+    private readonly ILogger<TcpPacketConsumer> _logger;
     private readonly PipelineManager _pipelineManager;
 
-    public TcpPacketParser(PipelineManager pipelineManager, ILogger<TcpPacketParser> logger)
+    public TcpPacketConsumer(PipelineManager pipelineManager, ILogger<TcpPacketConsumer> logger)
     {
         _pipelineManager = pipelineManager;
         _logger = logger;
@@ -24,7 +24,7 @@ public class TcpPacketParser : BackgroundService
             ReadResult result = await reader.ReadAsync(stoppingToken);
             ReadOnlySequence<byte> buffer = result.Buffer;
 
-            while (TryReadMessage(ref buffer, out var message))
+            while (PacketParser.TryReadMessage(ref buffer, out var message))
             {
                 // Process the line.
                 _logger.LogInformation("Received message: {Message}", message.ToArray());
@@ -42,8 +42,11 @@ public class TcpPacketParser : BackgroundService
         // Mark the PipeReader as complete.
         await reader!.CompleteAsync();
     }
+}
 
-    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out ReadOnlySequence<byte> message)
+internal class PacketParser
+{
+    public static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out ReadOnlySequence<byte> message)
     {
         // 範例：假設團隊協定是「前 4 個 Byte 為 Int32，代表後面 Data 的長度」(Length-Prefixed)
         if (buffer.Length < 4)

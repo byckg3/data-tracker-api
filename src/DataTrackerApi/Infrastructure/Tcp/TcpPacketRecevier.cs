@@ -2,15 +2,15 @@
 using System.IO.Pipelines;
 
 namespace DataTrackerApi.Infrastructure.Tcp;
-public class TcpMessageReceiver : BackgroundService
+public class TcpPacketReceiver : BackgroundService
 {
-    private readonly ILogger<TcpMessageReceiver> _logger;
+    private readonly ILogger<TcpPacketReceiver> _logger;
     private readonly PipelineManager _pipelineManager;
     private readonly string _host = "127.0.0.1";
     private readonly int _port = 8080;
 
 
-    public TcpMessageReceiver(PipelineManager pipelineManager, ILogger<TcpMessageReceiver> logger)
+    public TcpPacketReceiver(PipelineManager pipelineManager, ILogger<TcpPacketReceiver> logger)
     {
         _logger = logger;
         _pipelineManager = pipelineManager;
